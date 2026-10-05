@@ -1,14 +1,14 @@
 # Changelogs
 
 ## Release version changelogs
-### Versi 1.0.0 - 02 Oktober 2026
-* **Pembaruan Fitur**:
-    * Menambah dukungan distribusi Linux.
-    * Memuat raster GeoTiff.
-    * Memuat vektor berformat ESRI Shapefile dan Geopackage.
-    * Membuat dan menggambar vektor poligon.
-    * Menyesuaikan fitur zoom in dan zoom out.
-    * Mendukung mode drag/pan.
-    * Menambah tombol fit view.
-    * Mendeteksi kecukupan air, kecukupan nutrisi, dan serangan penyakit padi.
-    * Menampilkan hasil deteksi dan informasi yang relevan.
+### Version 1.0.0 - October 02, 2026
+- **Feature Updates**:
+    * Added Linux distribution support.
+    * Load GeoTIFF raster imagery.
+    * Load vector data in ESRI Shapefile and GeoPackage formats.
+    * Create and draw polygon vector data.
+    * Adjusted zoom in and zoom out functionality.
+    * Added support for drag/pan mode.
+    * Added a fit to view button.
+    * Detect water sufficiency, nutrient sufficiency, and rice crop disease attacks.
+    * Display detection results and relevant information.

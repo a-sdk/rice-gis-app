@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 # Rice GIS App
 =======
-# RiceGIS App
->>>>>>> de8bc58fdef8b58cbdb8db80290fac3426a8af05
 
 ## Project Description
 

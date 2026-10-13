@@ -1,60 +1,67 @@
 # Changelogs
 
 ## Beta version changelogs
-### Versi 0.0.8 - 20 Agustus 2026
-* **Pembaruan Fitur & Perbaikan Bug**:
-    * Menambah kustomisasi warna, keterangan, dan informasi legenda.
-    * Mengoptimasi model ke format onnx.
-    * Memperbaiki bug z-order layer.
-    * Memperbaiki bug extent tidak diperbarui.
-    * Memperbaiki bug fit to view.
-    * Menghapus model yang tidak digunakan.
-### Versi 0.0.7 - 25 Juni 2026
-* **Pembaruan Fitur & Perbaikan Bug**:
-    * Menghapus temp folder sesuai layer.
-    * Memisahkan pemuatan raster dari thread utama.
-    * Mengatasi masalah overview akibat zoom.
-    * Menambah fitur window reading untuk zoom detail.
-    * Modifikasi fit to view sesuai layer visible.
-### Versi 0.0.6 - 11 Juni 2026
-* **Pembaruan Fitur & Perbaikan Bug**:
-    * Menambah fitur overview raster.
-    * Mengoptimasi penggunaan memori saat menampilkan raster.
-    * Memperbaiki bug scene-world coordinate.
-### Versi 0.0.5 - 7 Juni 2026
-* **Pembaruan Fitur & Perbaikan Bug**:
-    * Memperbaiki bug cwd saat freezing.
-    * Menambah fitur layer-based Geopackage.
-    * Memodifikasi pembuatan multipoligon.
-### Versi 0.0.4 - 25 April 2026
-* **Pembaruan Fitur & Perbaikan Bug**:
-    * Mengintegrasikan model kecukupan air.
-    * Mengintegrasikan model kecukupan nutrisi.
-### Versi 0.0.3 - 18 April 2026
-* **Pembaruan Fitur & Perbaikan Bug**:
-    * Memperbaiki dependencies error.
-    * Memperbaiki bug saat menambah layer.
-    * Menambahkan fitur cancel ketika proses berjalan.
-    * Memperbaiki bug nodata di alpha channel.
-    * Menambah fitur pan, zoom in/out, fit to view.
-    * Memperbaiki bug layout.
-    * Menambah keterangan waktu proses.
-    * Memperbaiki bug mouse event.
-    * Menambah fitur legenda per layer.
-    * Menambah support Geopackage.
-### Versi 0.0.2 - 4 April 2026
-* **Pembaruan Fitur & Perbaikan Bug**:
-    * Memperbaiki segmentasi.
-    * Menambahkan UI.
-    * Memperbaiki bug layer.
-    * Memperbaiki bug viewer raster.
-    * Memperbaiki bug CRS shapefile.
-    * Menambah fitur dialog penyakit.
-### Versi 0.0.1 - 2 April 2026
-* **Pembaruan Fitur & Perbaikan Bug**:
-    * Memperbaiki bug akibat nilai nodata.
-    * Mengoptimasi fitur ekstraksi piksel.
-    * Efisiensi workflow.
-    * Mengatasi memory leak.
-    * Mengubah metode ke OOP.
-    * Memperbaiki bug akibat OOP.
+### Version 0.0.8 - August 20, 2026
+- **Feature Updates & Bug Fixes**:
+    * Added customization for legend colors, descriptions, and information.
+    * Optimized models to ONNX format.
+    * Fixed layer z-order bug.
+    * Fixed extent not updating bug.
+    * Fixed fit to view bug.
+    * Removed unused models.
+
+### Version 0.0.7 - June 25, 2026
+- **Feature Updates & Bug Fixes**:
+    * Removed temp folder per layer.
+    * Offloaded raster loading from the main thread.
+    * Fixed overview issues caused by zooming.
+    * Added window reading feature for detailed zoom.
+    * Modified fit to view based on visible layers.
+
+### Version 0.0.6 - June 11, 2026
+- **Feature Updates & Bug Fixes**:
+    * Added raster overview feature.
+    * Optimized memory usage when displaying rasters.
+    * Fixed scene-world coordinate bug.
+
+### Version 0.0.5 - June 7, 2026
+- **Feature Updates & Bug Fixes**:
+    * Fixed CWD bug during app freezing.
+    * Added layer-based GeoPackage feature.
+    * Modified multipolygon creation.
+
+### Version 0.0.4 - April 25, 2026
+- **Feature Updates & Bug Fixes**:
+    * Integrated water sufficiency model.
+    * Integrated nutrient sufficiency model.
+
+### Version 0.0.3 - April 18, 2026
+- **Feature Updates & Bug Fixes**:
+    * Fixed dependencies error.
+    * Fixed bug when adding layers.
+    * Added process cancellation feature while running.
+    * Fixed nodata bug in alpha channel.
+    * Added pan, zoom in/out, and fit to view features.
+    * Fixed layout bug.
+    * Added processing time information.
+    * Fixed mouse event bug.
+    * Added per-layer legend feature.
+    * Added GeoPackage support.
+
+### Version 0.0.2 - April 4, 2026
+- **Feature Updates & Bug Fixes**:
+    * Fixed segmentation.
+    * Added user interface (UI).
+    * Fixed layer bug.
+    * Fixed raster viewer bug.
+    * Fixed shapefile CRS bug.
+    * Added disease dialog feature.
+
+### Version 0.0.1 - April 2, 2026
+- **Feature Updates & Bug Fixes**:
+    * Fixed bug caused by nodata values.
+    * Optimized pixel extraction feature.
+    * Streamlined workflow efficiency.
+    * Resolved memory leak issues.
+    * Refactored code to Object-Oriented Programming (OOP).
+    * Fixed bugs resulting from OOP refactoring.

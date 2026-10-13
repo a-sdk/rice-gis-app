@@ -1,131 +1,128 @@
 # Changelogs
 
 ## Alpha version changelogs
-### Versi 1.4.11 - 31 Januari 2026
-* **Perbaikan Bug**:
-    * Menghilangkan proses membangun ulang citra berformat `float32`.
-    * Mengkombinasikan 7 kanal spektral dan 4 hasil transformasi dengan workflow lebih efisien
+### Version 1.4.11 - January 31, 2026
+* **Bug Fixes**:
+    * Removed the rebuild process for `float32` formatted images.
+    * Combined 7 spectral bands and 4 transformation outputs using a more efficient workflow.
 
-### Versi 1.4.10 - 22 Januari 2026
-* **Fitur Baru**:
-    * Menambahkan fungsi untuk mengekstrak koordinat vertek di `ekstraksi.py`.
-    * Menambahkan kolom koordinat X (longitude) dan Y (latitude) pada fungsi ekstraksi piksel.
-    * Menambahkan fungsi untuk membuat multipoligon.
-    * Menambahkan fungsi untuk mengekstrak koordinat verteks.
-    * Menambahkan fungsi untuk membuat petak sebaran penyakit.
+### Version 1.4.10 - January 22, 2026
+* **New Features**:
+    * Added a function to extract vertex coordinates in `ekstraksi.py`.
+    * Added X (longitude) and Y (latitude) coordinate columns to the pixel extraction function.
+    * Added a function to create multipolygons.
+    * Added a function to extract vertex coordinates.
+    * Added a function to generate disease distribution maps.
 
-### Versi 1.4.9 - 26 Desember 2025
-* **Fitur Baru**:
-    * Menambahkan fungsi untuk mengolah label dan dataset di `utils.py`.
-* **Perbaikan Bug**:
-    * Memperbaiki kesalahan nilai nodata pada `klasifikasi.py`. 
-    * Memperbaiki kesalahan urutan komponen hasil ekstraksi pada fungsi `ekstrak_rerata_piksel()`.
+### Version 1.4.9 - December 26, 2025
+* **New Features**:
+    * Added functions for processing labels and datasets in `utils.py`.
+* **Bug Fixes**:
+    * Fixed nodata value errors in `klasifikasi.py`.
+    * Fixed incorrect component ordering of extracted results in the `ekstrak_rerata_piksel()` function.
 
-### Versi 1.4.8 - 13 Desember 2025
-* **Fitur Baru**:
-    * Membuat fungsi untuk mendeteksi penyakit tanaman padi.
-    * Membuat versi pertama untuk program deteksi penyakit di `deteksi.py`.
-* **Perbaikan Bug**:
-    * Memperbaiki kebocoran memori pada fungsi `clip_raster()`. 
+### Version 1.4.8 - December 13, 2025
+* **New Features**:
+    * Created a function to detect rice crop diseases.
+    * Created the first version of the disease detection module in `deteksi.py`.
+* **Bug Fixes**:
+    * Fixed a memory leak issue in the `clip_raster()` function.
 
-### Versi 1.4.7 - 20 November 2025
-* **Fitur Baru**:
-    * Membuat fungsi untuk mengekstrak rata-rata nilai piksel dari multi poligon.
-  
-### Versi 1.4.6 - 08 November 2025
-* **Fitur Baru**:
-    * Membuat dukungan untuk melakukan batch processing.
-    * Menampilkan waktu terpisah per proses dan waktu keseluruhan.
-    * Memodifikasi fungsi `clip_raster()` untuk mendukung operasi BigTIFF.
-    
-### Versi 1.4.5 - 03 November 2025
-* **Fitur Baru**:
-    * Membuat dua opsi alur kerja antara fitur terpisah atau tumpukan fitur.
-    * Memuat proses ektraksi nilai piksel ke dalam fungsi.
-    * Merapikan folder hasil dari masing-masing proses pengolahan.
-    * Memindahkan fungsi utilitas ke file `utils.py`.
-    * Memisahkan setiap band ke file terpisah beserta hasil transformasi indeks.
-    * Memodifikasi fungsi `mask_raster()` menjadi `mask_band_terpisah()` untuk melakukan masking pada file terpisah.
-    * Mengubah alur kerja menjadi: 
-        clip -> transformasi -> segmentasi -> masking -> ektraksi.
-    * Memodifikasi folder hasil dari setiap langkah sesuai dengan perubahan alur kerja.
-    * Memodifikasi fungsi masking dan ekstraksi supaya menampilkan jumlah piksel yang valid dan jumlah piksel yang diekstrak.
-    * Menambahkan visualisasi progress bar ke fungsi `ekstrak_tumpukan_fitur()`.
-    * Memuat proses transformasi dan segmentasi ke dalam fungsi di modul `transformasi.py`.
-* **Perbaikan Bug**:
-    * Memodfikasi fungsi `clip_raster()` supaya nilai piksel 0 tidak hilang.
+### Version 1.4.7 - November 20, 2025
+* **New Features**:
+    * Created a function to extract average pixel values from multipolygons.
 
-### Versi 1.4.4 - 30 Oktober 2025
-* **Fitur Baru**:
-    * Memodifikasi fungsi `ambil_file()` supaya menampilkan daftar file yang relevan.
-    * Menambahkan fungsi `tumpuk_fitur()` untuk menumpuk semua fitur berdasarkan list.
-    * Menambahkan `model_random_forest_0.joblib` sebagai model klasifikasi padi dan gulma.
-    * Menambahkan `segmentasi_gulma.py` untuk menjalankan klasifikasi pad dan gulma.
-* **Perbaikan Bug**:
-    * Mengganti nilai nodata menjadi NaN dari sebelumnya -9999 untuk menghindari galat.
-    
-### Versi 1.4.3 - 22 Oktober 2025
-* **Fitur Baru**:
-    * Menjadikan struktur proyek lebih fleksibel berdasarkan input pengguna.
-    * Memuat bagian untuk menampilkan histogram ke dalam fungsi `tampilkan_histogram()`.
-    * Menambahkan bagian untuk menampilkan hasil clipping.
-* **Perbaikan Bug**:
-    * Menghilangkan bounding box hitam di sekitar hasil clipping.
-    * Memperbaiki bug lonjakan nilai 0 pada histogram akibat nilai nodata yang dihitung pada saat transformasi.
+### Version 1.4.6 - November 08, 2025
+* **New Features**:
+    * Added support for batch processing.
+    * Displayed elapsed time per individual process as well as overall execution time.
+    * Modified the `clip_raster()` function to support BigTIFF operations.
 
-### Versi 1.4.2 - 21 Oktober 2025
-* **Fitur Baru**:
-    * Memuat bagian untuk meminta folder dan file ke dalam fungsi `ambil_file()`.
-    * Menambahkan NDREI sebagai acuan thresholding untuk memisahkan antara tanaman dengan gulma.
-* **Perbaikan Bug**:
-    * Memperbaiki bug program terus berjalan meskipun folder atau file tidak valid. 
- 
-### Versi 1.4.1 - 13 Oktober 2025
-* **Fitur Baru**:
-    * Menambahkan fitur ekstraksi nilai piksel berdasarkan verteks poligon.
-    * Memberikan fitur ekstraksi kemampuan untuk mengekstrak semua band dalam folder.
-    * Menyimpan hasil ekstraksi dalam sebuah file `.csv`
-    * Menampilkan progress bar untuk mengetahui kemajuan proses ekstraksi.
-* **Perbaikan Bug**:
-    * Mengubah lokasi folder hasil masking dan transformasi untuk memudahkan ekstraksi.
-    * Memperbaiki masalah file yang overwrite.
-    * Memperbaiki masalah NoData yang diekstrak ke `.csv`
-    * Memperbaiki urutan alfabetis kolom ekstraksi menjadi sesuai kebutuhan.
-    * Memperbaiki format data citra yang tidak konsisten.
-    
-### Versi 1.4 - 11 Oktober 2025
-* **Fitur Baru**:
-    * Menambahkan fitur supaya pengguna dapat menentukan folder kerja di luar folder proyek ini.
-    * Memodifikasi penamaan file hasil proses supaya menyesuaikan dengan nama file yang diproses.
-    * Membuat file `program_arogansi.py` untuk eksperimen batch file processing.
+### Version 1.4.5 - November 03, 2025
+* **New Features**:
+    * Created two workflow options: separated features or stacked features.
+    * Encapsulated the pixel value extraction process into dedicated functions.
+    * Reorganized output directories for each processing step.
+    * Moved utility functions to `utils.py`.
+    * Separated each band into individual files along with index transformation outputs.
+    * Modified `mask_raster()` to `mask_band_terpisah()` to enable masking across separated band files.
+    * Updated workflow sequence to: 
+        clip -> transform -> segment -> mask -> extract.
+    * Updated output folder paths according to the new workflow.
+    * Updated masking and extraction functions to display total valid pixels and extracted pixel counts.
+    * Added progress bar visualization to the `ekstrak_tumpukan_fitur()` function.
+    * Encapsulated transformation and segmentation processes into functions within `transformasi.py`.
+* **Bug Fixes**:
+    * Modified `clip_raster()` to prevent pixel values equal to 0 from being lost.
 
-### Versi 1.3 - 8 Oktober 2025
-* **Fitur Baru**:
-    * Menambahkan fitur input supaya pengguna dapat memilih file yang diproses.
-    * Memodifikasi fungsi menyimpan raster sehingga tidak menimpa file sebelumnya.
-    * Menambahkan fitur auto-thresholding berdasarkan citra SAVI.
-* **Perbaikan Bug**:
-    * Memperbaiki bug pada fungsi transformasi SAVI.
-    
-### Versi 1.2 - 9 September 2025
-* **Fitur Baru**:
-    * Menambahkan fungsi clip raster dari shapefile poligon.
-    * Melakukan masking pada seluruh kanal multispektral.
-    * Menambahkan fungsi untuk memeriksa ukuran raster.
+### Version 1.4.4 - October 30, 2025
+* **New Features**:
+    * Modified `ambil_file()` to display relevant file lists.
+    * Added `tumpuk_fitur()` function to stack all features from a list.
+    * Added `model_random_forest_0.joblib` for rice and weed classification.
+    * Added `segmentasi_gulma.py` to run rice and weed classification.
+* **Bug Fixes**:
+    * Changed nodata values to NaN from -9999 to avoid processing errors.
 
+### Version 1.4.3 - October 22, 2025
+* **New Features**:
+    * Made project structure flexible based on user input.
+    * Encapsulated the histogram visualization into `tampilkan_histogram()`.
+    * Added a display section for clipping results.
+* **Bug Fixes**:
+    * Removed black bounding boxes surrounding clipped outputs.
+    * Fixed a bug causing spikes in value 0 on histograms due to nodata values computed during transformations.
 
-### Versi 1.1 - 7 Agustus 2025        
-* **Fitur Baru**:
-    * Menambahkan fungsi untuk menyimpan raster.
-    * Menambahkan fungsi untuk menampilkan raster pada histogram.
-    * Menambahkan fungsi untuk melakukan thresholding.
-    * Menambahkan fungsi untuk melakukan masking.
-* **Perbaikan Bug**:
-    * Memperbaiki bug di mana perhitungan indeks vegetasi tidak akurat.
+### Version 1.4.2 - October 21, 2025
+* **New Features**:
+    * Encapsulated folder/file prompt procedures into `ambil_file()`.
+    * Added NDREI as a thresholding reference to separate crops from weeds.
+* **Bug Fixes**:
+    * Fixed an issue where execution continued despite invalid folder or file paths.
 
+### Version 1.4.1 - October 13, 2025
+* **New Features**:
+    * Added pixel value extraction based on polygon vertices.
+    * Expanded extraction functionality to process all bands within a directory.
+    * Saved extraction results directly to a `.csv` file.
+    * Added progress bars to track pixel extraction progress.
+* **Bug Fixes**:
+    * Updated output directory locations for masking and transformation results to streamline extraction.
+    * Resolved file overwrite issues.
+    * Fixed NoData values being exported to `.csv`.
+    * Reordered extraction column headers to meet project specifications.
+    * Fixed inconsistent image data formatting.
 
-### Versi 1.0 - 6 Agustus 2025
+### Version 1.4 - October 11, 2025
+* **New Features**:
+    * Added capability for users to define a custom working directory outside the project root.
+    * Updated output file naming conventions to match processed input names dynamically.
+    * Created `program_arogansi.py` for batch file processing experiments.
 
-* Rilis awal program pengolahan citra drone.
-* Fungsi dasar untuk membaca band citra.
-* Fungsi dasar untuk menghitung indeks vegetasi.
+### Version 1.3 - October 08, 2025
+* **New Features**:
+    * Added user input selection for choosing input files.
+    * Updated raster saving functionality to prevent overwriting existing files.
+    * Added auto-thresholding features based on SAVI images.
+* **Bug Fixes**:
+    * Fixed bugs in the SAVI transformation function.
+
+### Version 1.2 - September 09, 2025
+* **New Features**:
+    * Added raster clipping function from polygon shapefiles.
+    * Added multi-spectral band masking across all channels.
+    * Added utility function to inspect raster dimensions.
+
+### Version 1.1 - August 07, 2025
+* **New Features**:
+    * Added raster saving function.
+    * Added function to display raster values in a histogram.
+    * Added thresholding functionality.
+    * Added masking functionality.
+* **Bug Fixes**:
+    * Fixed inaccurate vegetation index calculation algorithms.
+
+### Version 1.0 - August 06, 2025
+* Initial release of the drone image processing program.
+* Basic functionality for reading image bands.
+* Basic functionality for calculating vegetation indices.

@@ -28,6 +28,8 @@ Ensure you have downloaded the file (`.zip`/`.tar.gz`) containing the applicatio
 1. Extract the ZIP file into your local directory.
 2. Run the application and wait for the user interface to launch.
 
+#### P.S: If you want to build/compile the app by yourself, simply install Python 3.11 with all the required libraries noted in `requirements.txt`. Next, run the `build.bat` for Windows or `build_linux.sh` for Ubuntu.
+
 ## User Guide
 ### Initial Interface
 

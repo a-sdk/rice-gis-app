@@ -1,18 +1,13 @@
-# Folder
-# Venv
-.venv/
-.venv-linux/
 # IDE
 .vscode
 # Python
 __pycache__/
+.venv/
+.venv-linux/
 # PyInstaller
 dist/
 build/
 # Others
 runtime/
 temp/
-*.tif
-*.jpg
-tester.py
-RiceGIS-linux-x64.tar.gz
+.continue/

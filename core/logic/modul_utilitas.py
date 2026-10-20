@@ -5,17 +5,10 @@ yang digunakan pada program utama
 
 import os
 import json
-import sqlite3
 import numpy as np
 import rasterio as rio
 import geopandas as gpd
 import fiona
-from shapely.geometry import Point, MultiPoint
-from pyproj import database
-from pyproj.aoi import AreaOfInterest
-import shapely.ops as ops
-from sklearn.cluster import KMeans
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -57,6 +50,9 @@ def create_constant_raster(tif, value, output_folder, output_filename):
 
 # Fungsi bantu pembuatan multipoligon 
 def lonlat_to_utm_epsg(lon, lat):
+    from pyproj import database
+    from pyproj.aoi import AreaOfInterest
+
     utm_crs_list = database.query_utm_crs_info(
         datum_name="WGS 84",
         area_of_interest=AreaOfInterest(
@@ -70,6 +66,7 @@ def lonlat_to_utm_epsg(lon, lat):
     return int(utm_crs_list[0].code)
 
 def generate_grid_points(polygon, target_count):
+    from shapely.geometry import Point
     bounds = polygon.bounds # (minx, miny, maxx, maxy)
     area = polygon.area
     
@@ -99,7 +96,9 @@ def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.
     Returns:
         str: Output path.
     """
-
+    from sklearn.cluster import MiniBatchKMeans
+    from shapely.geometry import Point, MultiPoint
+    import shapely.ops as ops
     # print("\nMembuat multipoligon...")
     
     output_folder = f"{output_folder}/multipoligon"
@@ -169,10 +168,19 @@ def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.
     # ========================================
     if on_progress:
         on_progress(13, f"Clustering points...")
-    coords = [(p.x, p.y) for p in gdf_points.geometry]
+
+    coords = np.column_stack((gdf_points.geometry.x, gdf_points.geometry.y))
     if len(gdf_points) < jml_cluster:
-        raise ValueError(f"Points count must be greater than cluster count.")
-    kmeans = KMeans(n_clusters=jml_cluster, random_state=42, n_init=20)
+        raise ValueError("Points count must be greater than cluster count.")
+
+    batch_size = min(len(coords), max(1024, jml_cluster * 2))
+    kmeans = MiniBatchKMeans(
+        n_clusters=jml_cluster,
+        random_state=42,
+        batch_size=batch_size,
+        n_init=3,
+        max_iter=100,
+    )
     gdf_points["CLUSTER_ID"] = kmeans.fit_predict(coords)
     centers = kmeans.cluster_centers_
     logger.info("K-Means clustering selesai")
@@ -443,7 +451,7 @@ def hitung_sebaran_petak(gpkg_path, legend_dict):
     Returns:
         None.
     """
-    
+    import sqlite3
     from path_config import InfoRegistry
     try:
         layers = fiona.listlayers(gpkg_path)

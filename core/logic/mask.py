@@ -1,52 +1,50 @@
 """
-Modul untuk mask citra.
+Masking operation module
 """
 
 import os
 import numpy as np
-from core.logic.modul_utilitas import getRootFileName
+from core.logic.utils import get_filename
 import rasterio as rio
 import logging
 
 logger = logging.getLogger(__name__)
 # Fungsi untuk melakukan masking pada tumpukan fitur
-def mask_tumpukan_fitur(input_path, mask_path, output_folder, logika=lambda x: x==1, nilai_nodata=0):
+def mask_stack(input_path, mask_path, output_folder, logic=lambda x: x==1, nodata_val=0):
     """
-    Menerapkan masking pada tumpukan fitur berdasarkan mask boolean.
-    
+    Apply a boolean mask to a stack (raster) based on a specified condition.
     Parameters:
-        input_path (str): Lokasi folder tumpukan fitur yang akan di-mask.
-        mask_path (str): Lokasi file mask.
-        output_folder (str): Nama folder tempat hasil mask disimpan.
-        logika (function): Fungsi lambda sebagai acuan mask.
-        nilai_nodata (float): Nilai nodata raster.
-    
+        input_path (str): Path to the input raster stack file.
+        mask_path (str): Path to the mask raster file.
+        output_folder (str): Directory where the output file will be saved.
+        logika (callable, optional): Condition function (lambda) used for masking. Defaults to lambda x: x == 1.
+        nodata_val (float, optional): Nodata value to set in the profile. Defaults to 0.
     Returns:
-        str: Output path.
+        str: Path to the generated masked output file.
     """
     with rio.open(mask_path) as src_mask:
             mask_data = src_mask.read(1)
     # Membuat boolean mask
-    mask_valid = logika(mask_data)
+    mask_valid = logic(mask_data)
     # Mengecualikan nilai nodata
-    mask_valid[mask_data == nilai_nodata] = False           
-    logger.info(f"Mask boolean berhasil dibuat. Total piksel valid: {np.sum(mask_valid)}")
+    mask_valid[mask_data == nodata_val] = False           
+    logger.info(f"Boolean mask generatid. Total valid pixel: {np.sum(mask_valid)}")
     # print(f"Membuka tumpukan fitur...")
     os.makedirs(output_folder, exist_ok=True)
-    base_name = getRootFileName(input_path)
+    base_name = get_filename(input_path)
     output_path = os.path.join(output_folder, f"{base_name}_mask result.tif")
     with rio.open(input_path) as src_data:
         # Membaca fitur sekaligus
         data_stack = src_data.read()
         profile = src_data.profile
         # print("Menerapkan mask ke semua fitur...")
-        data_stack[:, ~mask_valid] = nilai_nodata
+        data_stack[:, ~mask_valid] = nodata_val
         
         # Perbarui profile untuk file output agar konsisten
         profile.update(
             dtype="float32",
             count=data_stack.shape[0], 
-            nodata=nilai_nodata
+            nodata=nodata_val
         )
         # print("Menyimpan hasil masking...")
         with rio.open(output_path, "w", **profile) as dest:
@@ -54,19 +52,17 @@ def mask_tumpukan_fitur(input_path, mask_path, output_folder, logika=lambda x: x
     # print(f"File {nf}_masked.tif berhasil disimpan di {output_folder}")
     return output_path
 
-def water_pred_mask(input_path, ndvi_path, output_folder, nilai_nodata=0):
+def water_pred_mask(input_path, ndvi_path, output_folder, nodata_val=0):
     """
-    Menerapkan metode masking khusus
-    untuk prediksi kecukupan air.
-
+    Apply a specialized masking method for water adequacy 
+    prediction based on NDVI and morphological operations.
     Parameters:
-        input_path (str): Lokasi file yang akan di-mask.
-        ndvi_path (str): Lokasi file hasil transformasi NDVI.
-        output_folder (str): Nama folder tempat hasil mask disimpan.
-        nilai_nodata (float): Nilai nodata raster.
-        
+        input_path (str): Path to the input multiband raster file.
+        ndvi_path (str): Path to NDVI raster file.
+        output_folder (str): Directory where the output file will be saved.
+        nodata_val (float, optional): Nodata value to set in the profile. Defaults to 0.
     Returns:
-        str: Output path.
+        str: Path to the generated masked output file.
     """
 
     from skimage import exposure
@@ -75,7 +71,7 @@ def water_pred_mask(input_path, ndvi_path, output_folder, nilai_nodata=0):
     from scipy import ndimage
 
     os.makedirs(output_folder, exist_ok=True)
-    base_name = getRootFileName(input_path)
+    base_name = get_filename(input_path)
     output_path = os.path.join(output_folder, f"{base_name}_water mask.tif")
 
     with (
@@ -96,12 +92,12 @@ def water_pred_mask(input_path, ndvi_path, output_folder, nilai_nodata=0):
     mask_cleaned = remove_small_holes(mask_cleaned, max_size=500)
     mask_cleaned = ndimage.median_filter(mask_cleaned, size=3)
     masked_img = img.copy()  
-    masked_img[:, ~mask_cleaned] = nilai_nodata  
+    masked_img[:, ~mask_cleaned] = nodata_val  
 
     profile.update(
         dtype=img.dtype,
         count=src_img.count, 
-        nodata=nilai_nodata
+        nodata=nodata_val
     )
 
     with rio.open(output_path, "w", **profile) as dest: 

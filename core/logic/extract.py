@@ -1,12 +1,12 @@
 '''
-Modul untuk ekstraksi fitur citra.
+Extraction module
 '''
 
 # Libraries
 import pandas as pd
 import rasterio as rio
 from rasterstats import zonal_stats
-from core.logic.modul_utilitas import getRootFileName
+from core.logic.utils import get_filename
 import geopandas as gpd
 import os
 import logging
@@ -14,20 +14,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Fungsi untuk mengekstrak rata-rata nilai piksel dalam sub poligon
-def ekstrak_rerata_piksel(shp_path, input_path, output_folder):
+def extract_zonal_mean_pixels(shp_path, input_path, output_folder):
     """
-    Mengekstrak rata-rata piksel dalam poligon dari tumpukan fitur.
-
+    Extract the mean pixel values from a raster based on polygon zones defined in a shapefile.
     Parameters:
-        shp_path (str): Lokasi shapefile yang menjadi acuan.
-        input_path (str): Lokasi file tumpukan fitur.
-        output_folder (str): Nama folder tempat file akan disimpan.
-        output_filename (str): Nama file output, termasuk ekstensi.
+        shp_path (str): Path to the reference shapefile containing polygon geometries.
+        input_path (str): Path to the raster feature stack file to be extracted from.
+        output_folder (str): Directory where the output results will be saved.
 
     Returns:
-        str: Output path.
+        str: Path to the generated CSV file.
     """
-    logger.info("Memulai ekstraksi")
     gdf = gpd.read_file(shp_path)
 
     # Menyiapkan kolom identitas
@@ -56,7 +53,7 @@ def ekstrak_rerata_piksel(shp_path, input_path, output_folder):
                 "RED_EDGE", "NIR"
             ]
         for i, name in enumerate(nama_bands):
-            logger.info(f"Mengekstrak band {name}")
+            logger.info(f"Extracting {name}")
             band_data = src.read(i + 1)
             
             stats = zonal_stats(
@@ -89,10 +86,9 @@ def ekstrak_rerata_piksel(shp_path, input_path, output_folder):
     
     # Simpan file
     os.makedirs(output_folder, exist_ok=True)
-    base_name = getRootFileName(input_path)
+    base_name = get_filename(input_path)
     output_path = os.path.join(output_folder, f"{base_name}_pixel_val.csv")
     df_urut.to_csv(output_path, index=False)
-    logger.info("Menyimpan hasil ekstraksi")
     # print(f"Ekstraksi selesai...")
     # print(f"Total baris yang diekstrak: {df_urut.shape[0]}")
     # print(rf"File {output_filename} berhasil disimpan di {output_folder}")    

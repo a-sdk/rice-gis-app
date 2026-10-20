@@ -1,8 +1,8 @@
-from core.logic.modul_klasifikasi import (
-    deteksi_penyakit_rumpun, 
+from core.logic.predict import (
+    predict_disease, 
     deteksi_penyakit_petak,
-    deteksi_air_petak,
-    deteksi_nutrisi_petak
+    predict_water_plot,
+    predict_nutrient_plont
 )
 from path_config import ModelRegistry
 import logging
@@ -75,7 +75,7 @@ class PlantDiseaseClassifier(BaseClassifier):
 
     def _do_prediction(self, input_path, output_folder, shp_path, check_cancel, on_progress):
         self._load_model()
-        output_path = deteksi_penyakit_rumpun(
+        output_path = predict_disease(
             scaler=self.scaler_1, 
             model=self.model_1, 
             input_path=input_path, 
@@ -118,7 +118,7 @@ class WaterPlotClassifier(BaseClassifier):
 
     def _do_prediction(self, input_path, output_folder, shp_path, check_cancel, on_progress):
         self._load_model()
-        output_gpkg = deteksi_air_petak(
+        output_gpkg = predict_water_plot(
             scaler=self.scaler_1, 
             model_reg=self.model_1, 
             input_path=input_path, 
@@ -143,7 +143,7 @@ class NutrientPlotClassifier(BaseClassifier):
 
     def _do_prediction(self, input_path, output_folder, shp_path, check_cancel, on_progress):
         self._load_model()
-        output_gpkg = deteksi_nutrisi_petak(
+        output_gpkg = predict_nutrient_plont(
             scaler_n=self.scaler_1, 
             scaler_p=self.scaler_1,
             scaler_k=self.scaler_1,

@@ -1,6 +1,5 @@
 """
-Modul berisi fungsi-fungsi pembantu
-yang digunakan pada program utama
+Utility functions module
 """
 
 import os
@@ -13,43 +12,28 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def getRootFileName(input_path):
-    base = os.path.splitext(os.path.basename(input_path))[0]
-    return base.split('_')[0]
-
-# Fungsi bantu membuat raster konstan
-def create_constant_raster(tif, value, output_folder, output_filename):
+def get_filename(path):
     """
-    Membuat array baru dengan ukuran sama seperti raster sumber.
-    Semua piksel non-NoData diisi dengan `value`.
-    """
-    os.makedirs(output_folder, exist_ok=True)
-    output_path = os.path.join(output_folder, output_filename)
+    Get file name from a path.
+    Parameters:
+        path (str): Path to a file. 
+    Returns:
+        str: Filename.
+    """  
+    base = os.path.splitext(os.path.basename(path))[0]
+    name = base.split('_')[0]
+    return name
 
-    with rio.open(tif) as src:
-        mask = src.read_masks(1) > 0
-        profile = src.profile.copy()
-
-    output = np.zeros((src.height, src.width), dtype=np.uint8)
-
-    # Isi piksel valid
-    output[mask] = value
-
-    profile.update(
-        count=1, 
-        dtype=rio.uint8, 
-        nodata=0
-        ) 
-
-    # Tulis ke file stack baru
-    with rio.open(output_path, 'w', **profile) as dest:
-        dest.write(output, 1)
-
-    logger.info(f"Band hst berhasil dibuat")
-    return output_path
-
-# Fungsi bantu pembuatan multipoligon 
 def lonlat_to_utm_epsg(lon, lat):
+    """
+    Convert geographic (lat/lon) coordinates to UTM projection.
+    Parameters:
+        lon (float): Longitude.
+        lat (float): Latitude.  
+    Returns:
+        int: EPSG code.
+    """
+
     from pyproj import database
     from pyproj.aoi import AreaOfInterest
 
@@ -62,15 +46,22 @@ def lonlat_to_utm_epsg(lon, lat):
             north_lat_degree=lat,
         ),
     )
-    # Mengambil kode EPSG dari hasil pertama yang ditemukan
+    
     return int(utm_crs_list[0].code)
 
-def generate_grid_points(polygon, target_count):
+def generate_grid_points(geom, target_count):
+    """
+    Generate points in a regular grid pattern within a given geometry.
+    Parameters:
+        geom (shapely.geometry.base.BaseGeometry): Polygon or geometry within which to generate points.
+        target_count (int): Approximate target number of points to generate.
+    Returns:
+        list: List of shapely Point objects within the geometry.
+    """
     from shapely.geometry import Point
-    bounds = polygon.bounds # (minx, miny, maxx, maxy)
-    area = polygon.area
+    bounds = geom.bounds # (minx, miny, maxx, maxy)
+    area = geom.area
     
-    # Hitung jarak antar titik ideal (asumsi persegi)
     step = (area / target_count) ** 0.5
     
     x_coords = np.arange(bounds[0], bounds[2], step)
@@ -80,21 +71,21 @@ def generate_grid_points(polygon, target_count):
     for x in x_coords:
         for y in y_coords:
             p = Point(x, y)
-            if polygon.contains(p):
+            if geom.contains(p):
                 points.append(p)
     return points
         
-# Fungsi untuk membuat multipoligon (shahiban)
-def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.5):
+def generate_voronoi_poly(shp_path, output_folder, on_progress=None, subpoly_area=0.45):
     """
-    Membuat multipoligon dari shapefile poligon.
-
+    Subdivide polygons in a shapefile into smaller Voronoi polygons using K-Means clustering.
     Parameters:
-        shp_path (str): Lokasi shapefile yang menjadi acuan.
-        output_folder (str): Nama folder tempat hasil klip disimpan.
-        
+        shp_path (str): Path to the input polygon shapefile (.shp).
+        output_folder (str): Directory where the output shapefile will be saved under a 'multipoligon' subfolder.
+        on_progress (callable, optional): Optional callback function to track processing progress.
+        subpoly_area (float, optional): Approximate target area per subpolygon component in square meters.
+            Defaults to 0.45.
     Returns:
-        str: Output path.
+        str: Path to generated intersected Voronoi shapefile.
     """
     from sklearn.cluster import MiniBatchKMeans
     from shapely.geometry import Point, MultiPoint
@@ -110,19 +101,19 @@ def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.
     # Tahap 1: Membaca & Konversi CRS
     # ========================================
     if on_progress:
-        on_progress(11, f"Loading polygon crs...")
+        on_progress(11, f"Loading polygon CRS...")
     polygons = gpd.read_file(shp_path)
     crs_asal = polygons.crs.to_string()
     if polygons.crs is None:
-        raise ValueError(f"File {filename} tidak memiliki CRS. Harap periksa file.")
+        raise ValueError(f"No CRS found in {filename}. Please check.")
 
     if polygons.crs.is_geographic:
         centroid = polygons.unary_union.centroid
         epsg_code = lonlat_to_utm_epsg(centroid.x, centroid.y)
         polygons = polygons.to_crs(epsg=epsg_code)
-        logger.info(f"CRS diubah dari {crs_asal} ke UTM (EPSG:{epsg_code})")
+        logger.info(f"CRS converted: {crs_asal} -> UTM (EPSG:{epsg_code})")
     else:
-        logger.info(f"CRS sudah proyeksi ({str(polygons.crs).upper()})")
+        logger.info(f"CRS already projected ({str(polygons.crs).upper()})")
 
     # Menentukan jumlah komponen poligon berdasarkan luas 
     with fiona.open(shp_path) as shp:
@@ -140,9 +131,9 @@ def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.
     ).astype(int)
     jml_cluster = polygons["n_comp"].sum()
     poly_area = polygons["area"].sum()
-    logger.info(f"Terdapat {jml_poligon} poligon")
-    logger.info(f"Total luas {poly_area:.2f} m2")
-    logger.info(f"Jumlah cluster {jml_cluster}")
+    logger.info(f"Polygon count: {jml_poligon}")
+    logger.info(f"Total area: {poly_area:.2f} m2")
+    logger.info(f"Available cluster count: {jml_cluster}")
     logger.info(
     "\n%s",
     polygons[["id", "area", "n_comp", "n_point"]]
@@ -161,7 +152,7 @@ def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.
         )
         all_points.extend(pts)
     gdf_points = gpd.GeoDataFrame(geometry=all_points, crs=polygons.crs)
-    logger.info(f"{len(gdf_points)} titik acak dihasilkan")
+    logger.info(f"{len(gdf_points)} random points generated")
 
     # ========================================
     # Tahap 3: K-Means Clustering
@@ -183,7 +174,7 @@ def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.
     )
     gdf_points["CLUSTER_ID"] = kmeans.fit_predict(coords)
     centers = kmeans.cluster_centers_
-    logger.info("K-Means clustering selesai")
+    logger.info("K-Means clustering done")
 
     # ========================================
     # Tahap 4: Hitung Centroid
@@ -194,7 +185,7 @@ def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.
         geometry=[Point(x, y) for x, y in centers],
         crs=polygons.crs
     )
-    logger.info(f"{len(centroids)} centroid dihasilkan")
+    logger.info(f"Generated {len(centroids)} centroid")
 
     # ========================================
     # Tahap 5: Voronoi Polygon
@@ -213,8 +204,6 @@ def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.
         gdf_voronoi, centroids, how="left", distance_col="dist"
     )
 
-    # logger.info("Voronoi polygons selesai")
-
     # ========================================
     # Tahap 6: Intersection
     # ========================================
@@ -222,7 +211,6 @@ def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.
         on_progress(19, f"Performing intersection...")
     if polygons.crs != gdf_voronoi.crs:
         gdf_voronoi = gdf_voronoi.to_crs(polygons.crs)
-        # logger.info("CRS berbeda, disamakan dulu.")
 
     gdf_inter = gpd.overlay(polygons, gdf_voronoi, how="intersection")
     gdf_inter = gdf_inter[
@@ -234,23 +222,21 @@ def buat_multipoligon(shp_path, output_folder, on_progress=None, subpoly_area=0.
     # === Simpan langsung ke folder utama tanpa subfolder ===
     gdf_inter.to_file(output_intersection, driver="ESRI Shapefile")
 
-    logger.info(f"Intersection selesai")
+    logger.info(f"Intersection performed succesfully")
 
     return output_intersection
 
-# Fungsi untuk menyimpan array NumPy ke dalam file GeoTIFF
-def simpan_raster(input_raster, profile, output_folder, output_filename, nilai_nodata=None):
+def save_raster(input_raster, profile, output_folder, output_filename, nodata_val=None):
     """
-    Menyimpan array NumPy sebagai file GeoTIFF ke folder yang ditentukan.
-
+    Save a NumPy array as a GeoTIFF file to the specified directory.
     Parameters:
-        input_raster (np.ndarray): Array NumPy yang akan disimpan.
-        profile (dict): Metadata raster dari file sumber.
-        output_folder (str): Nama folder tempat file akan disimpan.
-        output_filename (str): Nama file output, termasuk ekstensi.
-        
+        input_raster (np.ndarray): NumPy array to be saved.
+        profile (dict): Raster metadata from the source file.
+        output_folder (str): Directory where the file will be saved.
+        output_filename (str): Output filename, including extension.
+        nodata_val (float, optional): Nodata value to set in the profile. Defaults to None.   
     Returns:
-        str: Output path.
+        str: Path to the generated raster file.
     """
     # Gabungkan nama folder dan nama file
     output_path = os.path.join(output_folder, output_filename)
@@ -263,8 +249,8 @@ def simpan_raster(input_raster, profile, output_folder, output_filename, nilai_n
         count=1,
         driver="GTiff"
     )
-    if nilai_nodata is not None:
-        profile.update(nodata=nilai_nodata)
+    if nodata_val is not None:
+        profile.update(nodata=nodata_val)
         
     with rio.open(output_path, 'w', **profile) as dest:
         dest.write(input_raster, 1)
@@ -272,38 +258,33 @@ def simpan_raster(input_raster, profile, output_folder, output_filename, nilai_n
     # print(f"File {output_filename} berhasil disimpan di {output_folder}")
     return output_path
 
-# Fungsi untuk menentukan threshold secara otomatis
 def otsu_threshold(input_raster, jumlah_bin=256, rentang_nilai=(-1, 1)):
     """
-    Menghitung threshold untuk masking raster.
-
+    Calculate an optimal global threshold for raster masking using Otsu's method.
     Parameters:
-        input_raster (np.ndarray): Data raster yang akan dihitung thresholdnya.
-        jumlah_bin (int): Jumlah bin histogram.
-        rentang_nilai (str): Nilai min dan max yang ada pada data raster.
-        
+        input_raster (np.ndarray): Input raster data array to calculate the threshold for.
+        jumlah_bin (int, optional): Number of histogram bins. Defaults to 256.
+        rentang_nilai (tuple of float, optional): Minimum and maximum intensity value range (min, max).
+            Defaults to (-1, 1).
     Returns:
-        float: Nilai threshold.
+        float: Computed threshold value separating the foreground and background.
     """
-    # Histogram dan probabilitas
+    
     hist, bin_edges = np.histogram(input_raster.ravel(), bins=jumlah_bin, range=rentang_nilai)
     prob = hist.astype(float) / hist.sum()
 
     # Bin center
     bin_mids = (bin_edges[:-1] + bin_edges[1:]) / 2
 
-    # Probabilitas kumulatif (q1) dan mean kumulatif (mu1)
     q1 = np.cumsum(prob)
     mu1 = np.cumsum(prob * bin_mids)
 
     # Total mean
     global_mean = mu1[-1]
 
-    # Kelas 2
     q2 = 1 - q1
     mu2 = global_mean - mu1
 
-    # Hindari pembagian dengan nol
     valid = (q1 > 0) & (q2 > 0)
 
     mean1 = np.zeros_like(mu1)
@@ -312,28 +293,23 @@ def otsu_threshold(input_raster, jumlah_bin=256, rentang_nilai=(-1, 1)):
     mean1[valid] = mu1[valid] / q1[valid]
     mean2[valid] = mu2[valid] / q2[valid]
 
-    # Variansi antar kelas
     selisih_var = q1 * q2 * (mean1 - mean2) ** 2
 
-    # Ambil threshold dengan variansi antar kelas maksimum
     nilai_terbaik = np.argmax(selisih_var * valid) 
     threshold = bin_mids[nilai_terbaik]
 
     return threshold
 
-# Fungsi menumpuk semua fitur (band)
-def tumpuk_fitur(lst_fitur, output_folder, output_filename, nilai_nodata=0):
+def stack_bands(lst_fitur, output_folder, output_filename, nodata_val=0):
     """
-    Menumpuk seluruh band atau fitur menjadi array Numpy besar.
-
+    Stack separate bands into a single multibands float32 raster file.
     Parameters:
-        lst_fitur (list): List fitur-fitur yang akan ditumpuk.
-        output_folder (str): Nama folder tempat file akan disimpan.
-        output_filename (str): Nama file output, termasuk ekstensi.
-        nilai_nodata (float): Nilai nodata raster.
-
+        lst_fitur (list): List of raster bands to be stacked.
+        output_folder (str): Directory where the output file will be saved.
+        output_filename (str): Output filename, including extension.
+        nodata_val (float, optional): Nodata value for the raster. Defaults to 0.
     Returns:
-        str: Output path.
+        str: Path to the generated raster file.
     """
     # Gabung nama folder dan file
     output_path = os.path.join(output_folder, output_filename)
@@ -348,7 +324,7 @@ def tumpuk_fitur(lst_fitur, output_folder, output_filename, nilai_nodata=0):
                 profile = src.profile
                 profile.update(
                     dtype="float32",
-                    nodata=nilai_nodata
+                    nodata=nodata_val
                 ) 
             # Baca semua band dari file ini
             feature_stack.append(src.read())
@@ -358,26 +334,23 @@ def tumpuk_fitur(lst_fitur, output_folder, output_filename, nilai_nodata=0):
 
     # Perbarui profile untuk file stack baru
     total_bands = full_stack_array.shape[0]
-    profile.update(count=total_bands, nodata=nilai_nodata) 
+    profile.update(count=total_bands, nodata=nodata_val) 
 
     # Tulis ke file stack baru
     with rio.open(output_path, 'w', **profile) as dst:
         dst.write(full_stack_array)
 
-    logger.info(f"Tumpukan fitur berhasil disimpan")
+    logger.info(f"Stacked raster saved succesfully")
     return output_path
 
-# Fungsi untuk menghitung sebaran penyakit per rumpun
-def hitung_sebaran_rumpun(input_path, legend_dict):
+def calculate_cluster_distribution(input_path, legend_dict):
     """
-    Menghitung sebaran penyakit.
-    
+    Calculate the distribution and percentage of classes from raster prediction files.
     Parameters:
-        input_path (list): Lokasi file GeoTIFF hasil prediksi model.
-        legend (dict): Informasi legenda.
-
+        input_path (list): List of file paths to model prediction GeoTIFF files.
+        legend_dict (dict): Dictionary containing legend information and mapping classes.
     Returns:
-        None.
+        None
     """
     
     from path_config import InfoRegistry
@@ -439,15 +412,12 @@ def hitung_sebaran_rumpun(input_path, legend_dict):
                 STATS=stats_json
                 )
        
-# Fungsi untuk menghitung sebaran per petak
-def hitung_sebaran_petak(gpkg_path, legend_dict):
+def calculate_plot_distribution(gpkg_path, legend_dict):
     """
-    Menghitung sebaran penyakit.
-    
+    Calculate the distribution and percentage of classes from GeoPackage prediction files.
     Parameters:
-        gpkg_path (str): Lokasi shapefile hasil prediksi model.
-        legend (dict): Informasi legenda.
-
+        gpkg_path (str): File paths to model prediction GeoPackage files.
+        legend (dict): Dictionary containing legend information and mapping classes.
     Returns:
         None.
     """
@@ -479,14 +449,14 @@ def hitung_sebaran_petak(gpkg_path, legend_dict):
         gdf = gpd.read_file(gpkg_path, layer=layer_name)
         
         if "preds" not in gdf.columns:
-            logger.info(f"Kolom 'preds' tidak ditemukan di layer {layer_name}")
+            logger.info(f"No 'preds' column in {layer_name}")
             continue
 
         data = gdf["preds"]
         jml_data = len(data)
         
         if jml_data == 0:
-            logger.info(f"Tidak ada data pada layer {layer_name}")
+            logger.info(f"Layer {layer_name}is empty")
             continue
 
         if layer_name == "water":
@@ -584,11 +554,4 @@ def hitung_sebaran_petak(gpkg_path, legend_dict):
 
     # Menutup database
     conn.commit()
-    conn.close()
-    
-
-if __name__ == "__main__":
-    buat_multipoligon(
-        shp_path=r"C:\Users\acer_\Documents\Shapefiles\cileunyi\petak rel.shp",
-        output_folder=r"C:\Users\acer_\Documents\Shapefiles\cileunyi"
-    )
+    conn.close()  

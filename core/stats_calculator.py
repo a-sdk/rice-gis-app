@@ -1,4 +1,4 @@
-from core.logic.modul_utilitas import hitung_sebaran_rumpun, hitung_sebaran_petak
+from core.logic.utils import calculate_cluster_distribution, calculate_plot_distribution
 from path_config import InfoRegistry
 import logging
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class PlantDiseaseCalculator(StatsCalculator):
         self.get_legend("disease")
 
     def _do_calculation(self, input_path):
-        hitung_sebaran_rumpun(input_path, legend_dict=self.legend)
+        calculate_cluster_distribution(input_path, legend_dict=self.legend)
         
 class DiseasePlotCalculator(StatsCalculator):
     """
@@ -47,7 +47,7 @@ class DiseasePlotCalculator(StatsCalculator):
         self.get_legend("disease")
 
     def _do_calculation(self, input_path):
-        hitung_sebaran_petak(input_path, legend_dict=self.legend)
+        calculate_plot_distribution(input_path, legend_dict=self.legend)
     
 class NutrientPlotCalculator(StatsCalculator):
     """
@@ -58,7 +58,7 @@ class NutrientPlotCalculator(StatsCalculator):
         self.get_legend("nutrient")
 
     def _do_calculation(self, input_path):
-        hitung_sebaran_petak(input_path, legend_dict=self.legend)
+        calculate_plot_distribution(input_path, legend_dict=self.legend)
 
 class WaterPlotCalculator(StatsCalculator):
     """
@@ -69,4 +69,4 @@ class WaterPlotCalculator(StatsCalculator):
         self.get_legend("water")
 
     def _do_calculation(self, input_path):
-        hitung_sebaran_petak(input_path, legend_dict=self.legend)
+        calculate_plot_distribution(input_path, legend_dict=self.legend)

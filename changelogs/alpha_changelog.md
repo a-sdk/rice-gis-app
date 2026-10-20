@@ -19,7 +19,7 @@
     * Added functions for processing labels and datasets in `utils.py`.
 * **Bug Fixes**:
     * Fixed nodata value errors in `klasifikasi.py`.
-    * Fixed incorrect component ordering of extracted results in the `ekstrak_rerata_piksel()` function.
+    * Fixed incorrect component ordering of extracted results in the `extract_zonal_mean_pixels()` function.
 
 ### Version 1.4.8 - December 13, 2025
 * **New Features**:
@@ -58,7 +58,7 @@
 ### Version 1.4.4 - October 30, 2025
 * **New Features**:
     * Modified `ambil_file()` to display relevant file lists.
-    * Added `tumpuk_fitur()` function to stack all features from a list.
+    * Added `stack_bands()` function to stack all features from a list.
     * Added `model_random_forest_0.joblib` for rice and weed classification.
     * Added `segmentasi_gulma.py` to run rice and weed classification.
 * **Bug Fixes**:

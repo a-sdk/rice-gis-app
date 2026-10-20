@@ -1,6 +1,6 @@
 import rasterio as rio
 import os
-from core.logic.modul_utilitas import getRootFileName
+from core.logic.utils import get_filename
 import numpy as np
 import onnxruntime as ort
 import logging
@@ -10,20 +10,20 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-def pisahkan_gulma(model_path, input_path, output_folder, check_cancel, on_progress):
+def separate_weeds(model_path, input_path, output_folder, check_cancel, on_progress):
     """
-    Menerapkan model terlatih ke seluruh tumpukan fitur untuk memisahkan padi dan gulma.
-
+    Apply a trained model to a raster to separate rice crops and weeds.
     Parameters:
-        model_path (str): Lokasi model deteksi gulma.
-        stack_path (str): Lokasi tumpukan fitur.
-        output_folder (str): Nama folder tempat file akan disimpan. 
-
+        model_path (str): Path to the trained weed detection model file.
+        input_path (str): Path to the input feature stack file.
+        output_folder (str): Directory where the output file will be saved.
+        check_cancel (callable, optional): Optional callback function to check for cancellation requests.
+        on_progress (callable, optional): Optional callback function to track processing progress.
     Returns:
-        str: Output path.
+        str: Path to the generated output file.
     """
     import joblib
-    base_name = getRootFileName(input_path)
+    base_name = get_filename(input_path)
     output_path = os.path.join(output_folder, f"{base_name}_segmented.tif")
     os.makedirs(output_folder, exist_ok=True)
     # print(f"Memuat model...")
@@ -31,6 +31,7 @@ def pisahkan_gulma(model_path, input_path, output_folder, check_cancel, on_progr
         with joblib.parallel_backend('threading'):
             model = joblib.load(model_path)
     except FileNotFoundError:
+        logger.error("Model not found")
         # print(f"ERROR: File model tidak ditemukan. Silahkan dicek dulu.")
         return
 
@@ -55,7 +56,7 @@ def pisahkan_gulma(model_path, input_path, output_folder, check_cancel, on_progr
                 # Memeriksa interupsi
                 if check_cancel and check_cancel():
                     from app.controller import OperationCancelledError
-                    logger.warning("Segmenter dihentikan")
+                    logger.warning("Segmenter stopped")
                     raise OperationCancelledError("User cancelled")
                 
                 # Perbarui progres internal 
@@ -95,16 +96,18 @@ def pisahkan_gulma(model_path, input_path, output_folder, check_cancel, on_progr
     # print(f"Pemisahan selesai! Peta segmentasi disimpan di: {output_folder}")
     return output_path
 
-def deteksi_penyakit_rumpun(scaler, model, input_path, output_folder, check_cancel, on_progress):
+def predict_disease(scaler, model, input_path, output_folder, check_cancel, on_progress):
     """
-    Menerapkan model multi-output ke raster dan menghasilkan 4 peta sebaran terpisah.
-
+    Apply a multi-output machine learning model to a raster feature stack to generate 4 separate disease distribution maps.
     Parameters:
-        input_path (str): Lokasi folder berisi file GeoTiff. 
-        output_folder (str): Nama folder tempat file akan disimpan.
-
+        scaler (object): Fitted scaler object used to normalize input features.
+        model (object): Trained multi-output prediction model.
+        input_path (str): Path to the input raster file or feature stack.
+        output_folder (str): Directory where the resulting distribution maps will be saved.
+        check_cancel (callable, optional): Optional callback function to check for cancellation requests.
+        on_progress (callable, optional): Optional callback function to track processing progress.
     Returns:
-        str: Output path.
+        list or str: Output path(s) to the generated prediction raster files.
     """
     session = ort.InferenceSession(model, providers=["CPUExecutionProvider"])
     input_name = session.get_inputs()[0].name
@@ -140,7 +143,7 @@ def deteksi_penyakit_rumpun(scaler, model, input_path, output_folder, check_canc
             # Memeriksa interupsi
             if check_cancel and check_cancel():
                 from app.controller import OperationCancelledError
-                logger.warning("Classifier dihentikan")
+                logger.warning("Classifier stopped")
                 raise OperationCancelledError("User cancelled")
             
             # Perbarui progres internal 
@@ -197,18 +200,19 @@ def deteksi_penyakit_rumpun(scaler, model, input_path, output_folder, check_canc
     # print(f"\nDeteksi selesai! 4 peta disimpan di folder: {output_folder}")
     return path_hasil
 
-def deteksi_penyakit_petak(scaler, model, input_path, shp_path, output_folder, check_cancel, on_progress):
+def predict_disease_plot(scaler, model, input_path, shp_path, output_folder, check_cancel, on_progress):
     """
-    Menerapkan model untuk prediksi
-    penyakit.
-
+    Apply a multi-output machine learning model to generate 4 separate disease distribution plots.
     Parameters:
-        input_path (str): Lokasi folder hasil ekstraksi nilai piksel.
-        shp_path (str): Lokasi shapefile yang menjadi acuan.
-        output_folder (str): Nama folder tempat file akan disimpan.
-
+        scaler (object): Fitted scaler object used to normalize input features.
+        model (object): Trained multi-output prediction model.
+        input_path (str): Path to the input CSV file.
+        shp_path (str): Path to the reference shapefile containing polygon geometries.
+        output_folder (str): Directory where the resulting distribution plots will be saved.
+        check_cancel (callable, optional): Optional callback function to check for cancellation requests.
+        on_progress (callable, optional): Optional callback function to track processing progress.
     Returns:
-        str: Output path.
+        str: Path to the generated prediction GeoPackage files.
     """
     df = pd.read_csv(input_path)
     gdf = gpd.read_file(shp_path)
@@ -266,18 +270,19 @@ def deteksi_penyakit_petak(scaler, model, input_path, shp_path, output_folder, c
     
     return output_gpkg
 
-def deteksi_air_petak(scaler, model_reg, input_path, shp_path, output_folder, check_cancel, on_progress):
+def predict_water_plot(scaler, model_reg, input_path, shp_path, output_folder, check_cancel, on_progress):
     """
-    Menerapkan model untuk prediksi
-    ketersediaan air.
-
+    Apply a machine learning model to generate water adequacy distribution plots.
     Parameters:
-        input_path (str): Lokasi folder hasil ekstraksi nilai piksel.
-        shp_path (str): Lokasi shapefile yang menjadi acuan.
-        output_folder (str): Nama folder tempat file akan disimpan.
-
+        scaler (object): Fitted scaler object used to normalize input features.
+        model_reg (object): Trained  prediction model.
+        input_path (str): Path to the input CSV file.
+        shp_path (str): Path to the reference shapefile containing polygon geometries.
+        output_folder (str): Directory where the resulting distribution plots will be saved.
+        check_cancel (callable, optional): Optional callback function to check for cancellation requests.
+        on_progress (callable, optional): Optional callback function to track processing progress.
     Returns:
-        str: Output path.
+        str: Path to the generated prediction GeoPackage files.
     """
     from sklearn.preprocessing import PolynomialFeatures
     poly = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
@@ -308,7 +313,7 @@ def deteksi_air_petak(scaler, model_reg, input_path, shp_path, output_folder, ch
         # Memeriksa interupsi
         if check_cancel and check_cancel():
             from app.controller import OperationCancelledError
-            logger.warning("Classifier dihentikan")
+            logger.warning("Classifier stopped")
             raise OperationCancelledError("User cancelled")
             
         # Perbarui progres internal 
@@ -331,18 +336,19 @@ def deteksi_air_petak(scaler, model_reg, input_path, shp_path, output_folder, ch
     
     return output_gpkg
     
-def deteksi_nutrisi_petak(scaler_n, scaler_p, scaler_k, model_n, model_p, model_k, input_path, shp_path, output_folder, check_cancel, on_progress):
+def predict_nutrient_plont(scaler_n, scaler_p, scaler_k, model_n, model_p, model_k, input_path, shp_path, output_folder, check_cancel, on_progress):
     """
-    Menerapkan model memprediksi
-    ketersediaan nutrisi.
-
+    Apply a machine learning model to generate nutrient adequacy distribution plots.
     Parameters:
-        input_path (str): Lokasi folder hasil ekstraksi nilai piksel.
-        shp_path (str): Lokasi shapefile yang menjadi acuan.
-        output_folder (str): Nama folder tempat file akan disimpan.
-
+        scaler (object): Fitted scaler object used to normalize input features.
+        model (object): Trained  prediction model.
+        input_path (str): Path to the input CSV file.
+        shp_path (str): Path to the reference shapefile containing polygon geometries.
+        output_folder (str): Directory where the resulting distribution plots will be saved.
+        check_cancel (callable, optional): Optional callback function to check for cancellation requests.
+        on_progress (callable, optional): Optional callback function to track processing progress.
     Returns:
-        str: Output path.
+        str: Path to the generated prediction GeoPackage files.
     """
     df = pd.read_csv(input_path)
     gdf = gpd.read_file(shp_path)
@@ -395,7 +401,7 @@ def deteksi_nutrisi_petak(scaler_n, scaler_p, scaler_k, model_n, model_p, model_
         # Memeriksa interupsi
         if check_cancel and check_cancel():
             from app.controller import OperationCancelledError
-            logger.warning("Classifier dihentikan")
+            logger.warning("Classifier stopped")
             raise OperationCancelledError("User cancelled")
             
         # Perbarui progres internal 
@@ -417,15 +423,4 @@ def deteksi_nutrisi_petak(scaler_n, scaler_p, scaler_k, model_n, model_p, model_
     gdf.to_file(output_shp, driver="ESRI Shapefile")
     
     return output_gpkg
-
-if __name__ == "__main__":
-    from modul_utilitas import PlantDiseaseAnalyzer
-    import glob
-    input_path = r"C:\Users\acer_\Documents\Orthomosaic\tes aplikasi\Lahan percobaan\Preds_Result\Sebaran_Rumpun"
-    shp_path = r"C:\Users\acer_\Documents\Orthomosaic\tes aplikasi\Lahan percobaan\multipoligon\Lahan 2_0_1029_komponen.shp"
-    output_folder = r"C:\Users\acer_\Documents\Orthomosaic\tes aplikasi\Lahan percobaan"
-    usep = PlantDiseaseAnalyzer()
-    files = glob.glob(f"{input_path}/*.tif")
-    for file in files:
-        hasil = usep.run(file, output_folder)
 

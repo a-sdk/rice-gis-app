@@ -1,14 +1,14 @@
 from app.result_model import AnalysisResult
 from app.worker import WorkerHelper
-from core.logic.modul_utilitas import (
-    buat_multipoligon, tumpuk_fitur, create_constant_raster
+from core.logic.utils import (
+    generate_voronoi_poly, stack_bands
 )
-from core.logic.modul_klip import potong_raster
-from core.logic.modul_transformasi import (
-    persiapan_segmentasi, proses_segmentasi, hitung_indeks_vegetasi
+from core.logic.clip import clip_raster
+from core.logic.transform import (
+    prep_segmentation, segmentation, calc_vegetation_indices
 )
-from core.logic.modul_mask import mask_tumpukan_fitur, water_pred_mask
-from core.logic.modul_ekstraksi import ekstrak_rerata_piksel
+from core.logic.mask import mask_stack, water_pred_mask
+from core.logic.extract import extract_zonal_mean_pixels
 from core.stats_calculator import (
     NutrientPlotCalculator, WaterPlotCalculator, PlantDiseaseCalculator
 )
@@ -40,7 +40,7 @@ class BaseController:
         self.helper.check_cancel()
         if shp:
             self.helper.progress(10, "Generating multi polygon...")
-            multipolygon_path = buat_multipoligon(
+            multipolygon_path = generate_voronoi_poly(
                 shp, 
                 out, 
                 on_progress=self.helper.progress,
@@ -49,7 +49,7 @@ class BaseController:
         self.helper.check_cancel()
         self.helper.progress(20, "Loading raster file...")
         if shp:
-            clipped_path = potong_raster(
+            clipped_path = clip_raster(
                 tif, 
                 shp, 
                 out
@@ -59,17 +59,17 @@ class BaseController:
         self.helper.check_cancel()
         self.helper.check_cancel()
         self.helper.progress(30, "Transforming with NDVI...")
-        ndrei_path, ndvi_path = persiapan_segmentasi(clipped_path, out)
+        ndrei_path, ndvi_path = prep_segmentation(clipped_path, out)
         if self.task == "disease":
             # Stack 7 channel + NDREI for disease detection
-            stack_path = tumpuk_fitur(
+            stack_path = stack_bands(
                 lst_fitur=[clipped_path, ndrei_path],
                 output_folder=out,
                 output_filename="stack result.tif"
             )
         self.helper.check_cancel()
         self.helper.progress(40, "Separating vegetation...")
-        segmented_path = proses_segmentasi(
+        segmented_path = segmentation(
             clipped_path, 
             ndvi_path, 
             out, 
@@ -92,14 +92,14 @@ class BaseController:
                 out
             )
         else:
-            masked_path = mask_tumpukan_fitur(
+            masked_path = mask_stack(
                 mask_input, 
                 segmented_path, 
                 out
                 )
         self.helper.check_cancel()
         self.helper.progress(60, "Extracting pixel...")
-        extracted_path = ekstrak_rerata_piksel(
+        extracted_path = extract_zonal_mean_pixels(
             multipolygon_path, 
             masked_path, 
             out
@@ -151,7 +151,7 @@ class WaterController(BaseController):
         self.stats_calc = WaterPlotCalculator()
     
     def calculate_vi(self, input_path, out_folder):
-        result_path = hitung_indeks_vegetasi(input_path, out_folder)
+        result_path = calc_vegetation_indices(input_path, out_folder)
         return result_path
 
 class DiseaseController(BaseController):

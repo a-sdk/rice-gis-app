@@ -87,7 +87,7 @@ def generate_voronoi_poly(shp_path, output_folder, on_progress=None, subpoly_are
     Returns:
         str: Path to generated intersected Voronoi shapefile.
     """
-    from sklearn.cluster import MiniBatchKMeans
+    from sklearn.cluster import KMeans, MiniBatchKMeans
     from shapely.geometry import Point, MultiPoint
     import shapely.ops as ops
     # print("\nMembuat multipoligon...")
@@ -164,14 +164,15 @@ def generate_voronoi_poly(shp_path, output_folder, on_progress=None, subpoly_are
     if len(gdf_points) < jml_cluster:
         raise ValueError("Points count must be greater than cluster count.")
 
-    batch_size = min(len(coords), max(1024, jml_cluster * 2))
-    kmeans = MiniBatchKMeans(
-        n_clusters=jml_cluster,
-        random_state=42,
-        batch_size=batch_size,
-        n_init=3,
-        max_iter=100,
-    )
+    # batch_size = min(len(coords), max(1024, jml_cluster * 2))
+    # kmeans = MiniBatchKMeans(
+    #     n_clusters=jml_cluster,
+    #     random_state=42,
+    #     batch_size=batch_size,
+    #     n_init=3,
+    #     max_iter=100,
+    # )
+    kmeans = KMeans(n_clusters=jml_cluster, random_state=42, n_init=20)
     gdf_points["CLUSTER_ID"] = kmeans.fit_predict(coords)
     centers = kmeans.cluster_centers_
     logger.info("K-Means clustering done")

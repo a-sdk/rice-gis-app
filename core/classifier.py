@@ -1,6 +1,6 @@
 from core.logic.predict import (
     predict_disease, 
-    deteksi_penyakit_petak,
+    predict_disease_plot,
     predict_water_plot,
     predict_nutrient_plont
 )
@@ -96,7 +96,7 @@ class DiseasePlotClassifier(BaseClassifier):
 
     def _do_prediction(self, input_path, output_folder, shp_path, check_cancel, on_progress):
         self._load_model()
-        output_gpkg = deteksi_penyakit_petak(
+        output_gpkg = predict_disease_plot(
             self.scaler_1, 
             self.model_1, 
             input_path, 

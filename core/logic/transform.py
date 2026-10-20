@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import rasterio as rio
 from core.logic.utils import otsu_threshold, save_raster, get_filename
-from core.logic.modul_klasifikasi import separate_weeds
+from core.logic.predict import separate_weeds
 from path_config import AppPaths
 import logging
 import os

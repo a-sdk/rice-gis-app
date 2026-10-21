@@ -139,16 +139,54 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.coord_label)
 
     def _setup_progress_dialog(self):
+        import time
+        if hasattr(self, 'timer') and self.timer.isActive():
+            self.timer.stop()
+
+        self.start_time = time.monotonic()
+        self.elapsed_sec = 0
+        self.mins = 0
+        self.secs = 0
+        self.time_str = "0s"
+
         self.pd = QProgressDialog(self.current_msg, "Cancel", 0, 100, self)
         self.pd.setWindowTitle("Please wait")
         self.pd.setWindowModality(Qt.WindowModal)
         self.pd.setMinimumDuration(0)
         self.pd.setValue(0)
-        self.elapsed_sec = 0
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self._update_timer_label)
-        self.timer.start(1000) # ms
 
+        if not hasattr(self, 'timer'):
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self._update_timer_label)
+        self.timer.start(1000)
+
+    def handle_progress_dialog(self, val, msg):
+        self.current_msg = msg
+        self.pd.setValue(val)
+        self.pd.setLabelText(f"{msg}\nElapsed: {self.time_str}")
+
+    def _update_timer_label(self):
+        import time
+        start = getattr(self, 'start_time', None)
+        if start is not None:
+            self.elapsed_sec = int(time.monotonic() - start)
+        else:
+            self.elapsed_sec += 1
+
+        self.mins = self.elapsed_sec // 60
+        self.secs = self.elapsed_sec % 60
+        self.time_str = f"{self.mins}m {self.secs}s" if self.mins > 0 else f"{self.secs}s"
+        if hasattr(self, 'pd') and self.pd.isVisible():
+            self.pd.setLabelText(f"{self.current_msg}\nElapsed: {self.time_str}")
+
+    def reset_elapsed(self):
+        if hasattr(self, 'timer') and self.timer.isActive():
+            self.timer.stop()
+        self.elapsed_sec = 0
+        self.time_str = "0s"
+        self.mins = 0
+        self.secs = 0
+        
     def update_scene_extent(self):
         logger.info("Memperbarui extent...")
         extents = []
@@ -180,18 +218,6 @@ class MainWindow(QMainWindow):
         self.raster_handler.update_origin(xmin, ymax)
         self.vector_handler.refresh_vector()
         self.polygon_tool.update_draw_origin(xmin, ymax)
-
-    def handle_progress_dialog(self, val, msg):
-        self.current_msg = msg
-        self.pd.setValue(val)
-        self.pd.setLabelText(f"{msg}\nElapsed: {self.time_str}")
-
-    def _update_timer_label(self):
-        self.elapsed_sec += 1
-        self.mins = self.elapsed_sec // 60
-        self.secs = self.elapsed_sec % 60
-        self.time_str = f"{self.mins}m {self.secs}s" if self.mins > 0 else f"{self.secs}s"
-        self.pd.setLabelText(f"{self.current_msg}\nElapsed: {self.time_str}")
 
     def update_coord_label(self, x, y):
         self.coord_label.setText(f"X: {x:.2f}, Y: {y:.2f}")
@@ -470,11 +496,6 @@ class MainWindow(QMainWindow):
         if hasattr(self, "progress_bar"):
             self.progress_bar.setVisible(False)
         self.statusBar().clearMessage()
-
-    def reset_elapsed(self):
-        self.time_str = 0
-        self.mins = 0
-        self.secs = 0
 
     def on_analysis_finished(self, result: AnalysisResult):
         # Menutup timer dan dialog progress

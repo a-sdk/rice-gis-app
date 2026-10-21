@@ -41,7 +41,6 @@ def extract_zonal_mean_pixels(shp_path, input_path, output_folder):
     with rio.open(input_path) as src:
         count = src.count
         if count > 7:
-            logger.info("Raster punya > 7 band")
             nama_bands = [
                 "RED", "GREEN", "BLUE", "M_GREEN", "M_RED", 
                 "RED_EDGE", "NIR", "NDREI"

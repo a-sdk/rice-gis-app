@@ -25,106 +25,88 @@ class BaseController:
         self.classifier = None
         self.stats_calc = None
         self.result = AnalysisResult()
+        self.helper = None
 
-    def calculate_vi(self, input_path, out_path):
-        pass
-
-    def run(self, tif, shp, out, hooks=None):
-        self.helper = WorkerHelper(hooks)
-        self.helper.progress(5, "Checking raster...")
+    def _validate_raster(self, tif):
         import rasterio as rio
         with rio.open(tif) as src:
             if src.count < 7:
                 raise IndexError(f"Raster requires a minimum of 7 bands (found {src.count}).")
+
+    def prepare_mask_input(self, clipped_path, ndrei_path, out):
+        return clipped_path
+
+    def apply_mask(self, mask_input, segmented_path, ndvi_path, out):
+        return mask_stack(mask_input, segmented_path, out)
+
+    def prepare_classifier_input(self, masked_path, extracted_path, out):
+        return extracted_path
+
+    def run(self, tif, shp, out, hooks=None):
+        self.helper = WorkerHelper(hooks)
+        self.helper.progress(5, "Checking raster...")
+        self._validate_raster(tif)
         self.result.original_path = tif
         self.helper.check_cancel()
+
+        multipolygon_path = None
         if shp:
             self.helper.progress(10, "Generating multi polygon...")
             multipolygon_path = generate_voronoi_poly(
-                shp, 
-                out, 
+                shp,
+                out,
                 on_progress=self.helper.progress,
                 subpoly_area=0.45
-                )
+            )
         self.helper.check_cancel()
+
         self.helper.progress(20, "Loading raster file...")
-        if shp:
-            clipped_path = clip_raster(
-                tif, 
-                shp, 
-                out
-                )
-        else:
-            clipped_path = tif
+        clipped_path = clip_raster(tif, shp, out) if shp else tif
         self.helper.check_cancel()
-        self.helper.check_cancel()
+
         self.helper.progress(30, "Transforming with NDVI...")
         ndrei_path, ndvi_path = prep_segmentation(clipped_path, out)
-        if self.task == "disease":
-            # Stack 7 channel + NDREI for disease detection
-            stack_path = stack_bands(
-                lst_fitur=[clipped_path, ndrei_path],
-                output_folder=out,
-                output_filename="stack result.tif"
-            )
+        mask_input = self.prepare_mask_input(clipped_path, ndrei_path, out)
         self.helper.check_cancel()
+
         self.helper.progress(40, "Separating vegetation...")
         segmented_path = segmentation(
-            clipped_path, 
-            ndvi_path, 
-            out, 
+            clipped_path,
+            ndvi_path,
+            out,
             check_cancel=self.helper.cancelled,
             on_progress=self.helper.progress
-            )
+        )
         self.helper.check_cancel()
+
         self.helper.progress(50, "Masking raster...")
-        if self.task == "disease":
-            # Stack result as input
-            mask_input = stack_path
-        else:
-            # Clip result as input
-            mask_input = clipped_path
-        if self.task == "water":
-            # Use this particular mask function for water prediction
-            masked_path = water_pred_mask(
-                mask_input,
-                ndvi_path,
-                out
-            )
-        else:
-            masked_path = mask_stack(
-                mask_input, 
-                segmented_path, 
-                out
-                )
+        masked_path = self.apply_mask(mask_input, segmented_path, ndvi_path, out)
         self.helper.check_cancel()
+
         self.helper.progress(60, "Extracting pixel...")
         extracted_path = extract_zonal_mean_pixels(
-            multipolygon_path, 
-            masked_path, 
+            multipolygon_path,
+            masked_path,
             out
-            )
+        )
         self.helper.check_cancel()
-        # Calculate additional vegetation index for water prediction
-        vi_path = self.calculate_vi(extracted_path, out)
-        if self.task == "disease":
-            input_data = masked_path
-        elif self.task == "water" and vi_path is not None:
-            input_data = vi_path
-        else:
-            input_data = extracted_path
+
+        input_data = self.prepare_classifier_input(masked_path, extracted_path, out)
+
         self.helper.progress(70, f"Detecting {self.task}...")
         classified_path = self.classifier.run(
-            input_path=input_data, 
+            input_path=input_data,
             shp_path=multipolygon_path,
-            output_folder=out, 
-            check_cancel=self.helper.cancelled, 
+            output_folder=out,
+            check_cancel=self.helper.cancelled,
             on_progress=self.helper.progress
-            )    
+        )
         self.helper.check_cancel()
+
         self.helper.progress(90, "Calculating stats...")
-        self.helper.check_cancel()
         self.stats_calc.run(classified_path)
+        self.helper.check_cancel()
+
         self.helper.progress(95, "Saving results...")
         self.result.clip_path = clipped_path
         self.result.transform_path = ndvi_path
@@ -133,26 +115,29 @@ class BaseController:
         self.result.extraction_path = extracted_path
         self.result.prediction_path = classified_path
         self.helper.progress(100, "Done")
-        logger.info("Semua proses selesai")
+        logger.info("All done")
         return self.result
-
+    
 class NutrientController(BaseController):
     def __init__(self):
         super().__init__()
         self.task = "nutrient"
         self.classifier = NutrientPlotClassifier()
         self.stats_calc = NutrientPlotCalculator()
-
+    
 class WaterController(BaseController):
     def __init__(self):
         super().__init__()
         self.task = "water"
         self.classifier = WaterPlotClassifier()
         self.stats_calc = WaterPlotCalculator()
-    
-    def calculate_vi(self, input_path, out_folder):
-        result_path = calc_vegetation_indices(input_path, out_folder)
-        return result_path
+
+    def apply_mask(self, mask_input, segmented_path, ndvi_path, out):
+        return water_pred_mask(mask_input, ndvi_path, out)
+
+    def prepare_classifier_input(self, masked_path, extracted_path, out):
+        return calc_vegetation_indices(extracted_path, out)
+
 
 class DiseaseController(BaseController):
     def __init__(self):
@@ -160,4 +145,14 @@ class DiseaseController(BaseController):
         self.task = "disease"
         self.classifier = PlantDiseaseClassifier()
         self.stats_calc = PlantDiseaseCalculator()
+
+    def prepare_mask_input(self, clipped_path, ndrei_path, out):
+        return stack_bands(
+            lst_fitur=[clipped_path, ndrei_path],
+            output_folder=out,
+            output_filename="stack result.tif"
+        )
+
+    def prepare_classifier_input(self, masked_path, extracted_path, out):
+        return masked_path
     

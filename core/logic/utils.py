@@ -138,7 +138,7 @@ def generate_voronoi_poly(shp_path, output_folder, on_progress=None, subpoly_are
     "\n%s",
     polygons[["id", "area", "n_comp", "n_point"]]
     )
-    output_intersection = os.path.join(output_folder, f"{filename}_{jml_cluster}_part.shp")
+    output_intersection = os.path.join(output_folder, f"{filename}_voronoi.shp")
     # ========================================
     # Tahap 2: Generate Points
     # ========================================

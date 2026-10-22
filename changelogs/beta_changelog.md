@@ -1,6 +1,12 @@
 # Changelogs
 
 ## Beta version changelogs
+### Version 0.0.9 - October 22, 2026
+- **Feature Updates & Bug Fixes**:
+    * Fixed timer bug.
+    * Optimized voronoi generation.
+    * Disabled redundant logger information.
+
 ### Version 0.0.8 - August 20, 2026
 - **Feature Updates & Bug Fixes**:
     * Added customization for legend colors, descriptions, and information.

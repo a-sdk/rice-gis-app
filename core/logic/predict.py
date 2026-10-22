@@ -55,7 +55,7 @@ def separate_weeds(model_path, input_path, output_folder, check_cancel, on_progr
                 current_block += 1
                 # Memeriksa interupsi
                 if check_cancel and check_cancel():
-                    from app.controller import OperationCancelledError
+                    from app.worker import OperationCancelledError
                     logger.warning("Segmenter stopped")
                     raise OperationCancelledError("User cancelled")
                 
@@ -142,7 +142,7 @@ def predict_disease(scaler, model, input_path, output_folder, check_cancel, on_p
             current_block += 1
             # Memeriksa interupsi
             if check_cancel and check_cancel():
-                from app.controller import OperationCancelledError
+                from app.worker import OperationCancelledError
                 logger.warning("Classifier stopped")
                 raise OperationCancelledError("User cancelled")
             
@@ -244,7 +244,7 @@ def predict_disease_plot(scaler, model, input_path, shp_path, output_folder, che
         count += 1
         # Memeriksa interupsi
         if check_cancel and check_cancel():
-            from app.controller import OperationCancelledError
+            from app.worker import OperationCancelledError
             logger.warning("Classifier dihentikan")
             raise OperationCancelledError("User cancelled")
             
@@ -312,7 +312,7 @@ def predict_water_plot(scaler, model_reg, input_path, shp_path, output_folder, c
     for i in range(5):
         # Memeriksa interupsi
         if check_cancel and check_cancel():
-            from app.controller import OperationCancelledError
+            from app.worker import OperationCancelledError
             logger.warning("Classifier stopped")
             raise OperationCancelledError("User cancelled")
             
@@ -400,7 +400,7 @@ def predict_nutrient_plont(scaler_n, scaler_p, scaler_k, model_n, model_p, model
     for i, name in enumerate(nutrient):
         # Memeriksa interupsi
         if check_cancel and check_cancel():
-            from app.controller import OperationCancelledError
+            from app.worker import OperationCancelledError
             logger.warning("Classifier stopped")
             raise OperationCancelledError("User cancelled")
             

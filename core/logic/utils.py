@@ -92,7 +92,6 @@ def generate_voronoi_poly(shp_path, output_folder, on_progress=None, subpoly_are
     import shapely.ops as ops
     # print("\nMembuat multipoligon...")
     
-    output_folder = f"{output_folder}/multipoligon"
     os.makedirs(output_folder, exist_ok=True)
     filename = os.path.splitext(os.path.basename(shp_path))[0]
     # print(f"Memproses file: {filename}.shp")

@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 
 class OperationCancelledError(Exception):
-    """Thrown ketika user menekan tombol cancel."""
+    """Thrown when user press cancel."""
     pass
 
 class Worker(QThread):

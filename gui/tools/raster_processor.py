@@ -35,7 +35,7 @@ class RasterHandler(QObject):
         ymax = transform.f
         xmax = xmin + width * transform.a
         ymin = ymax + height * transform.e
-        logger.info(f"Raster extent x={xmin}, y={ymax}")
+        # logger.info(f"Raster extent x={xmin}, y={ymax}")
         return xmin, ymin, xmax, ymax
     
     def update_origin(self, xmin, ymax):

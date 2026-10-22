@@ -29,7 +29,7 @@ class VectorHandler(QObject):
         gdf = gpd.read_file(path)
         bounds = gdf.total_bounds
         xmin, ymin, xmax, ymax = bounds
-        logger.info(f"Vector extent x={xmin}, y={ymax}")
+        # logger.info(f"Vector extent x={xmin}, y={ymax}")
         # logger.info(f"{self.layer_items}")
         info = {
             "Name": name,

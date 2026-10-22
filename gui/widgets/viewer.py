@@ -110,16 +110,16 @@ class Viewer(QWidget):
         gc.collect()
         # logger.info(f"RAM setelah del: {process.memory_info().rss / 1024**2:.1f} MB")
         if layer_id in self.layer_items and self.layer_items[layer_id] != None:
-            # logger.info(f"Layer {layer_id} found!")
+            logger.info(f"Layer {layer_id} found!")
             item = self.layer_items[layer_id]
             item.setPixmap(pixmap)
-            # logger.info(f"Update pixmap scene...")
+            logger.info(f"Update pixmap scene...")
         else:
-            # logger.info(f"Layer {layer_id} not found!")
+            logger.info(f"Layer {layer_id} not found!")
             self.base_raster_size[layer_id] = (w, h)
             # Set bounding scene
             if len(self.base_raster_size) == 1:
-                # logger.info("Mengatur sceneRect")
+                # logger.info("Set sceneRect")
                 self.scene.setSceneRect(
                     top_left.x(),
                     top_left.y(),
@@ -128,7 +128,7 @@ class Viewer(QWidget):
                 )
                 # logger.info(f"SceneRect sesuai origin: {self.scene.sceneRect()}")
             item = self.scene.addPixmap(pixmap)
-            # logger.info(f"Add pixmap to scene...")
+            logger.info(f"Add pixmap to scene...")
             self.layer_items[layer_id] = item
 
         # logger.info(f"{self.layer_items}")

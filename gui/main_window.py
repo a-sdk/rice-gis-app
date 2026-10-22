@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
         self.scene_extent = ()
         self.queue_files = None
         self.time_str = str(0)
-        self.current_crs = "Unknown"
+        self.current_crs = "Non-Georeferenced"
         self.current_msg = "Processing..."
         self.layer_manager = LayerManager()
         self.viewer = Viewer(
@@ -223,7 +223,7 @@ class MainWindow(QMainWindow):
         self.coord_label.setText(f"X: {x:.2f}, Y: {y:.2f}")
 
     def update_crs_label(self, crs):
-        self.crs_label.setText(f"CRS: {crs}")
+        self.crs_label.setText(f"CRS: ({crs})")
         self.current_crs = crs 
 
     def _status_bar_info(self, msg):
@@ -387,10 +387,16 @@ class MainWindow(QMainWindow):
         if layer.layer_type == "vector":
             self.vector_handler.remove_vector(layer_id)
         if self.layer_manager.is_empty:
-            self.update_crs_label("Unknown")
+            self.update_crs_label("-")
             self.legend_panel.clear()
             self.dockLegend.hide()
             return
+        layer_ = self.layer_manager.get_layer(layer_id - 1)
+        if not layer_:
+            return
+        info = layer_.metadata
+        last_crs = info.get("CRS")
+        self.update_crs_label(last_crs)
 
     def delete_temp_folder(self, layer_name):
         name = layer_name.split(".")[0]

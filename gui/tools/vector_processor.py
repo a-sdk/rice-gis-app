@@ -19,23 +19,23 @@ class VectorHandler(QObject):
         self.vector_info = {}
 
     def refresh_vector(self):
-        # logger.info("Update vector origin...")
+        logger.info("Update vector origin...")
         for lid in self.vector_info:
             self.vectorUpdated.emit(lid)
 
     def add_shapefile(self, name, layer_id, path):
-        # logger.info(f"==== TAMBAH VEKTOR {name} DI LAYER: {layer_id} ====")
-        # logger.info("Load shapefile")
+        logger.info(f"==== ADD VECTOR {name} TO LAYER: {layer_id} ====")
+        logger.info("Load shapefile")
         gdf = gpd.read_file(path)
         bounds = gdf.total_bounds
         xmin, ymin, xmax, ymax = bounds
-        # logger.info(f"Vector extent x={xmin}, y={ymax}")
+        logger.info(f"Vector extent x={xmin}, y={ymax}")
         # logger.info(f"{self.layer_items}")
         info = {
             "Name": name,
             "Source": path,
             "Type": "shp",
-            "CRS": gdf.crs.to_string() if gdf.crs else "Unknown",
+            "CRS": gdf.crs.to_string() if gdf.crs else "Non-Georeferenced",
             "Geom_type": str(gdf.geom_type.iloc[0]),
             "Count": len(gdf),
             "Legend": None,
@@ -56,8 +56,8 @@ class VectorHandler(QObject):
         return layer
 
     def add_gpkg_layer(self, name, layer_id, path, layer_name):
-        # logger.info(F"==== ADD VEKTOR {layer_name} TO LAYER: {layer_id} ====")
-        # logger.info("Load geopackage...")
+        logger.info(F"==== ADD VEKTOR {layer_name} TO LAYER: {layer_id} ====")
+        logger.info("Load geopackage...")
         gdf = gpd.read_file(path, layer=layer_name)
         bounds = gdf.total_bounds
         xmin, ymin, xmax, ymax = bounds
@@ -68,7 +68,7 @@ class VectorHandler(QObject):
             "Source": path,
             "Type": "gpkg",
             "Layer_name": layer_name,
-            "CRS": gdf.crs.to_string() if gdf.crs else "Unknown",
+            "CRS": gdf.crs.to_string() if gdf.crs else "Non-Georeferenced",
             "Geom_type": str(gdf.geom_type.iloc[0]),
             "Count": len(gdf),
             "Legend": legend,

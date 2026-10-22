@@ -1,5 +1,4 @@
 import numpy as np
-import json
 import logging
 import psutil
 import os
@@ -36,11 +35,11 @@ class RasterHandler(QObject):
         ymax = transform.f
         xmax = xmin + width * transform.a
         ymin = ymax + height * transform.e
-        # logger.info(f"Raster extent x={xmin}, y={ymax}")
+        logger.info(f"Raster extent x={xmin}, y={ymax}")
         return xmin, ymin, xmax, ymax
     
     def update_origin(self, xmin, ymax):
-        # logger.info("Update origin raster...")
+        logger.info("Update origin raster...")
         self.scene_origin_x = xmin
         self.scene_origin_y = ymax
         
@@ -71,19 +70,6 @@ class RasterHandler(QObject):
             factor = 2
         return factor
     
-    def build_qtransform(self, transform, w, h, out_w, out_h, origin_x, origin_y):
-        from rasterio.transform import Affine
-        t1 = transform * Affine.scale(
-            w / out_w,
-            h / out_h   
-        ) 
-        final_transform = QTransform(
-            t1.a, t1.b, 
-            t1.d, t1.e, 
-            t1.c - origin_x, t1.f - origin_y
-        )
-        return final_transform
-
     def read_overview(self, src, factor): 
         from rasterio.enums import Resampling
         h, w = src.shape
@@ -108,9 +94,32 @@ class RasterHandler(QObject):
         )
 
         return data, mask
+    
+    def build_qtransform(self, transform, w, h, out_w, out_h, origin_x, origin_y):
+        from rasterio.transform import Affine
+        t1 = transform * Affine.scale(
+            w / out_w,
+            h / out_h   
+        ) 
+        final_transform = QTransform(
+            t1.a, t1.b, 
+            t1.d, t1.e, 
+            t1.c - origin_x, t1.f - origin_y
+        )
+        return final_transform
+
 
     def prepare_raster(self, bands, mask, count, nodata, isPrediction, legend=None):
-        alpha = mask.astype(np.uint8)
+        # Handle native alpha 4-channel RGBA
+        if count == 4 and mask is None:
+            alpha = bands[3].astype(np.uint8)
+            bands = bands[:3]
+            count = 3
+        elif mask is not None:
+            alpha = mask.astype(np.uint8)
+        else:
+            h, w = bands.shape[1:]
+            alpha = np.full((h, w), 255, dtype=np.uint8)
         if legend:
             legend_new = {int(k): v for k, v in legend.items()}
             self.raster_legend = legend_new
@@ -127,12 +136,10 @@ class RasterHandler(QObject):
             for val, color in colors.items():
                 img[img_data == val] = color
                 
-        # Jika bukan hasil prediksi
+        # If not prediction result 
         else: 
-            # Penanganan Channel (RGB vs Grayscale)
             if count >= 3:
                 # Ambil 3 band pertama untuk visualisasi RGB
-                # logger.info("Melakukan transpose...")
                 img_data = bands[:3]
                 if np.issubdtype(img_data.dtype, np.floating):
                     rgb = np.transpose(
@@ -144,6 +151,11 @@ class RasterHandler(QObject):
                         (img_data >> 8), 
                         (1, 2, 0)
                         ).astype(np.uint8)  
+                else:
+                    rgb = np.transpose(
+                        img_data,
+                        (1, 2, 0)
+                        ).astype(np.uint8)
                 # logger.info(f"rgb.nbytes={rgb.nbytes/1024**2:.1f} MB")
                 # logger.info(f"rgb:{rgb.flags['C_CONTIGUOUS']}")
                 # logger.info(f"rgb:{rgb.flags['OWNDATA']}")
@@ -151,10 +163,14 @@ class RasterHandler(QObject):
                 del bands
                 del rgb
                 # logger.info(f"RAM: {process.memory_info().rss / 1024**2:.1f} MB")
-
             else:
-                # Jika hanya 1 atau 2 band, tampilkan sebagai grayscale 
-                gray = (bands[0] * 255).astype(np.uint8)
+                # Jika hanya 1 atau 2 band, tampilkan sebagai grayscale
+                if np.issubdtype(bands.dtype, np.floating):
+                    gray = (bands[0] * 255).astype(np.uint8)
+                elif bands.dtype == np.uint16:
+                    gray = (bands[0] >> 8).astype(np.uint8)
+                else:
+                    gray = bands[0].astype(np.uint8)
                 # logger.info(f"gray.nbytes={gray.nbytes/1024**2:.1f} MB")
                 if nodata is not None:
                     alpha = np.where(bands[0] == nodata, 0, alpha).astype(np.uint8)
@@ -164,50 +180,49 @@ class RasterHandler(QObject):
         # logger.info(f"img.nbytes={img.nbytes/1024**2:.1f} MB")
         img = np.ascontiguousarray(img)
         return img
-    
+            
     def add_raster(self, name, layer_id, path, hooks=None):
         import rasterio as rio
+        import json
+        from rasterio.transform import Affine
         from app.worker import OperationCancelledError
         helper = WorkerHelper(hooks)
         filename = name.split(".")[0]
+        isGeotiff = not path.lower().endswith((".png", ".jpg", ".jpeg")) # Geotiff flag
         temp_dir = AppPaths.TEMP / filename
         temp_dir.mkdir(parents=True, exist_ok=True)
         # logger.info(f"RAM: {process.memory_info().rss / 1024**2:.1f} MB")
-        # logger.info(F"==== ADD RASTER {name} TO LAYER: {layer_id} ====")
+        logger.info(f"==== ADD RASTER {name} TO LAYER: {layer_id} ====")
         # logger.info("Load raster...")
         helper.progress(20, "Loading raster...")
         if helper.cancelled(): raise OperationCancelledError("User cancelled")
-        if path.lower().endswith((".png", ".jpg", ".jpeg")):
-            isGeoTiff = False
-            return path
-        
-        else:  # GeoTIFF Logic
-            isGeoTiff = True
-            # logger.info("Fetching raster metadata...")
-            helper.progress(45, "Fetching raster metadata...")
-            if helper.cancelled(): raise OperationCancelledError("User cancelled")
-            with rio.open(path) as src:
-                # Metadata raster
-                dtype = src.dtypes[0]
-                count = src.count
-                crs = src.crs
-                nodata = src.nodata
-                tag = src.tags()
-                h, w = src.shape
+        helper.progress(45, "Fetching raster metadata...")
+        if helper.cancelled(): raise OperationCancelledError("User cancelled")
+        with rio.open(path) as src:
+            # Metadata raster
+            dtype = src.dtypes[0]
+            count = src.count
+            crs = src.crs
+            nodata = src.nodata
+            tag = src.tags()
+            h, w = src.shape
+            if isGeotiff:
                 t = src.transform
-                pixel_width = abs(t.a) 
+                pixel_width = abs(t.a)
                 xmin, ymin, xmax, ymax = self.get_raster_extent(t, w, h)
-                if not self.scene_origin_x:
+
+                if self.scene_origin_x is None:
                     self.scene_origin_x = xmin
                     self.scene_origin_y = ymax
+
                 display_factor = self.choose_display_factor(w)
-                # logger.info(f"Display factor: {display_factor}")
-                if dtype == 'uint8':
+                logger.info(f"Display factor: {display_factor}")
+                if dtype == 'uint8' and 1 not in self.OVERVIEW_FACTORS:
                     self.OVERVIEW_FACTORS.insert(0, 1)
                 helper.progress(55, "Generating overview...")
-                # Buat overview 
+                # Buat overview
                 current_build = 1
-                for build_factor in self.OVERVIEW_FACTORS:
+                for build_factor in list(self.OVERVIEW_FACTORS):
                     if helper.cancelled(): raise OperationCancelledError("User cancelled")
                     total_build = len(self.OVERVIEW_FACTORS)
                     rel_progress = 60 + int((current_build/total_build) * 25)
@@ -217,13 +232,12 @@ class RasterHandler(QObject):
                         str(temp_dir/f"f{build_factor}.npz"),
                         bands=preview,
                         mask=mask
-                    )
-                    build_factor *= 2
+                )
                     current_build += 1
                 # Load overview yang dibuat
                 helper.progress(85, "Loading overview...")
                 if 1 in self.OVERVIEW_FACTORS:
-                    self.OVERVIEW_FACTORS.pop(0)
+                    self.OVERVIEW_FACTORS.remove(1)
                 if helper.cancelled(): raise OperationCancelledError("User cancelled")
                 arr = np.load(str(temp_dir/f"f{display_factor}.npz"))
                 bands = arr.get("bands")
@@ -231,59 +245,78 @@ class RasterHandler(QObject):
                 # Transform overview
                 out_h = bands.shape[1]
                 out_w = bands.shape[2]
-                qt_transform = self.build_qtransform(
-                    t, 
-                    w, 
-                    h, 
-                    out_w, 
-                    out_h, 
-                    self.scene_origin_x, 
-                    self.scene_origin_y
-                )
+            else:   
+                # Standard Image (PNG/JPG/JPEG)
+                helper.progress(70, "Reading standard image...")
+                t = Affine.translation(0, 0)
+                pixel_width = 1.0
+                xmin, ymin, xmax, ymax = 0, -h, w, 0
+                display_factor = 1
+                
+                if self.scene_origin_x is None:
+                    self.scene_origin_x = xmin
+                    self.scene_origin_y = ymax
+                
+                bands = src.read()
+                
+                if count == 4:
+                    mask = bands[3]
+                else:
+                    try:
+                        mask = src.dataset_mask()
+                    except Exception:
+                        mask = np.full((h, w), 255, dtype=np.uint8)
 
-            # Cek jenis citra
-            if "PREDICTION" in tag and dtype == 'uint8':
-                isPrediction = True
-            else:
-                isPrediction = False
-            
- 
-        if isGeoTiff:
-                # Memeriksa legend dan stats jika citra hasil prediksi
-                legend_dict = {}
-                stats_dict = {}
-                if isPrediction:
-                    if "LEGEND" in tag:
-                        legend_dict = json.loads(tag.get("LEGEND", "{}"))
-                    if "STATS" in tag:
-                        stats_dict = json.loads(tag.get("STATS", "{}"))
-                img = self.prepare_raster(bands, mask, count, nodata, isPrediction, legend_dict)
-                helper.progress(95, "Saving raster metadata...")
-                if helper.cancelled(): raise OperationCancelledError("User cancelled")
-                # Simpan info raster
-                info = {
-                    "Name": name,
-                    "Source": path,
-                    "Legend": legend_dict,
-                    "Stats": stats_dict,
-                    "Dtype": str(dtype),
-                    "CRS": crs.to_string() if crs else "Non-Georeferenced",
-                    "Count": count,
-                    "Nodata": nodata,
-                    "transform": t,
-                    "height": h,
-                    "width": w,
-                    "display_transform": t,
-                    "display_width": w,
-                    "display_height": h,
-                    "Res": f"{pixel_width:.4f} m ({pixel_width*100:.1f} cm/px)",
-                    "current_factor": display_factor,
-                    "base_factor": display_factor,
-                    "cache_dir": str(temp_dir),
-                    "is_prediction": isPrediction
-                }
-                self.raster_info[layer_id] = info
-        self.crsDetected.emit(crs.to_string() if crs else "Unknown")
+                out_h, out_w = h, w
+
+            if helper.cancelled(): raise OperationCancelledError("User cancelled")
+
+            # Build QTransform
+            qt_transform = self.build_qtransform(
+                t,
+                w,
+                h,
+                out_w,
+                out_h,
+                self.scene_origin_x,
+                self.scene_origin_y
+            )
+            # Check if geotiff is prediction result
+            isPrediction = "PREDICTION" in tag and dtype == 'uint8'
+            legend_dict = {}
+            stats_dict = {}
+            if isPrediction:
+                if "LEGEND" in tag:
+                    legend_dict = json.loads(tag.get("LEGEND", "{}"))
+                if "STATS" in tag:
+                    stats_dict = json.loads(tag.get("STATS", "{}"))
+        img = self.prepare_raster(bands, mask, count, nodata, isPrediction, legend_dict)
+        helper.progress(95, "Saving raster metadata...")
+        if helper.cancelled(): raise OperationCancelledError("User cancelled")
+        # Simpan info raster
+        info = {
+            "Name": name,
+            "Source": path,
+            "Legend": legend_dict,
+            "Stats": stats_dict,
+            "Dtype": str(dtype),
+            "CRS": crs.to_string() if crs and isGeotiff else "Non-Georeferenced",
+            "Count": count,
+            "Nodata": nodata,
+            "transform": t,
+            "height": h,
+            "width": w,
+            "display_transform": t,
+            "display_width": w,
+            "display_height": h,
+            "Res": f"{pixel_width:.4f} m ({pixel_width*100:.1f} cm/px)" if crs and isGeotiff else f"1 px",
+            "current_factor": display_factor,
+            "base_factor": display_factor,
+            "cache_dir": str(temp_dir) if isGeotiff else None,
+            "is_prediction": isPrediction
+        }
+        self.raster_info[layer_id] = info
+        self.crsDetected.emit(crs.to_string() if crs else "Non-Georeferenced")
         helper.progress(100, "Done")
         # Assign layer
         layer = Layer(
@@ -294,7 +327,7 @@ class RasterHandler(QObject):
             metadata=info,
             extent=(xmin, ymin, xmax, ymax),
             qtransform=qt_transform
-            )
+        )
         return layer
 
     def choose_factor(self, base_factor, ratio):
@@ -315,7 +348,7 @@ class RasterHandler(QObject):
             return [1, 2, 4, 8, 16][level]
 
     def update_viewport_raster(self, layer_id):
-        # logger.info("Get viewport size...")
+        logger.info("Get viewport size...")
         layer = self.layer_manager.get_layer(layer_id)
         if not layer:
             return
@@ -337,10 +370,10 @@ class RasterHandler(QObject):
         #             f"w={round(canvas.width(),2)},"
         #             f"h={round(canvas.height(),2)}"
         #             )
-        # logger.info(f"Raster size: w={info['width']}, h={info['height']}")
+        logger.info(f"Raster size: w={info['width']}, h={info['height']}")
         import rasterio as rio
         from rasterio.windows import Window
-        # logger.info("Window_reading...")
+        logger.info("Window_reading...")
         with rio.open(info.get("Source")) as src:
             row0, col0 = src.index(world_left, world_top)
             row1, col1 = src.index(world_right, world_bot)
@@ -363,10 +396,10 @@ class RasterHandler(QObject):
             # logger.info(f"Window x={x}, y={y}, w={w}, h={h}")
             # logger.info(f"Pixel size={round(window_transform.a,2)}")
 
-        # logger.info(f"Window read shape: {bands.shape}")
-        # logger.info(f"Window mask shape: {mask.shape}")
+        logger.info(f"Window read shape: {bands.shape}")
+        logger.info(f"Window mask shape: {mask.shape}")
         elapsed = time.perf_counter() - start
-        # logger.info(f"window reading time -> {elapsed:.3f}s")
+        logger.info(f"window reading time -> {elapsed:.3f}s")
         img = self.prepare_raster(
             bands,
             mask,
@@ -411,7 +444,7 @@ class RasterHandler(QObject):
         info["display_height"] = current_h
         if factor == 1 and dtype == 'uint16':
             self.update_viewport_raster(layer_id)
-            # logger.info(f"Reload layer {layer_id} -> f{factor} -> window_reading")
+            logger.info(f"Reload layer {layer_id} -> f{factor} -> window_reading")
         elif factor != info.get("current_factor"):
             cache_dir = Path(info.get("cache_dir"))
             arr = np.load(str(cache_dir/f"f{factor}.npz"))
@@ -443,7 +476,7 @@ class RasterHandler(QObject):
                 layer_id,
                 False
             )
-            # logger.info(f"Reload layer {layer_id} -> f{factor} {bands.shape}")
+            logger.info(f"Reload layer {layer_id} -> f{factor} {bands.shape}")
         info["current_factor"] = factor     
 
     def update_overview_level(self):

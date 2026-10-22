@@ -50,7 +50,7 @@ class LayerPanel(QWidget):
         self.tree.insertTopLevelItem(0, item)
         self.infoMsg.emit(f"{name} loaded.")
         self.tree_items[layer_id] = item
-        logger.info(f"Berhasil menambah '{name}' dengan ID: {layer_id}")
+        # logger.info(f"Succesfully added '{name}', ID: {layer_id}")
 
     # Toggle visibility (checkbox)
     def on_item_changed(self, item):
@@ -58,12 +58,12 @@ class LayerPanel(QWidget):
         layer = self.layer_manager.get_layer(layer_id)
         if not layer: return
         layer.is_visible = item.checkState(0) == Qt.Checked
-        logger.info(f"Mengubah visibilitas layer {layer_id}")
+        # logger.info(f"Layer {layer_id} visibility changed")
         self.viewer.set_visible(layer_id)
 
     # Update z-order
     def update_z_order(self):
-        logger.info("Sinyal terdeteksi, perbarui z-order layer panel")
+        # logger.info("z-order layer_panel updated")
         ids = []
         iterator = QTreeWidgetItemIterator(self.tree)
         while iterator.value():
@@ -76,12 +76,12 @@ class LayerPanel(QWidget):
             iterator += 1
         self.layer_ids = ids
         self.layerUpdated.emit(self.layer_ids)
-        logger.info(f"Layer IDs di panel (top down): {self.layer_ids}")
+        # logger.info(f"Layer IDs (top down): {self.layer_ids}")
 
     # Context menu
     def _open_menu(self, pos):
         item = self.tree.itemAt(pos)
-        logger.info("Membuka menu layer")
+        # logger.info("Layer menu opened")
         if not item:
             return
 
@@ -101,14 +101,14 @@ class LayerPanel(QWidget):
     def on_item_clicked(self, item):
         layer_id = item.data(0, Qt.UserRole)
         self.layerSelected.emit(layer_id)
-        logger.info(f"Layer {layer_id} diklik")
+        # logger.info(f"Layer {layer_id} clicked")
         
     def req_remove_layer(self, item):
         layer_id = item.data(0, Qt.UserRole)
         self.layerRemoveRequested.emit(layer_id)
 
     def remove_layer_item(self, layer_id):
-        logger.info(f"Menghapus layer {layer_id}")
+        # logger.info(f"Layer {layer_id} removed")
         item = self.tree_items.pop(layer_id, None)
         if not item:
             return

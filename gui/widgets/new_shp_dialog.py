@@ -17,7 +17,7 @@ class CreateShapefileDialog(QDialog):
         self.btn_save_shp.clicked.connect(self._handle_save_shp)
 
     def _handle_save_shp(self):
-        logger.info("btn_create_shp ditekan")
+        # logger.info("btn_create_shp pressed")
         path, _ = QFileDialog.getSaveFileName(self, "Save Layer As", "", "ESRI Shapefile (*.shp)")
         if path: self.lineEdit_new_shp.setText(path)   
 

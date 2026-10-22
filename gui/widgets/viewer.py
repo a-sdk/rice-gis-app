@@ -53,10 +53,10 @@ class Viewer(QWidget):
             if lid in self.layer_items:
                 z = len(ordered_ids) - i
                 self.layer_items[lid].setZValue(z)
-                logger.info(
-                    f"Mengatur z-order: "
-                    f"id={lid} -> z-order={z}"
-                    )
+                # logger.info(
+                #     f"Set z-order: "
+                #     f"id={lid} -> z-order={z}"
+                #     )
         self.viewer.viewport().update()
 
     def update_z_order(self, ids):
@@ -64,10 +64,10 @@ class Viewer(QWidget):
         self.set_z_order(self.list_ids)
 
     def get_viewport_state(self):
-        logger.info(
-            f"EMIT viewport state: "
-            f"base={self.base_view_scale} "
-        )
+        # logger.info(
+        #     f"EMIT viewport state: "
+        #     f"base={self.base_view_scale} "
+        # )
         scale = self.viewer.transform().m11()
         canvas = self.viewer.mapToScene(self.viewer.viewport().rect()).boundingRect()
         if self.base_view_scale is None:
@@ -77,11 +77,11 @@ class Viewer(QWidget):
         if self.base_view_scale < 3:
             self.base_view_scale = scale * 1
         zoom_ratio = scale / self.base_view_scale
-        logger.info(
-            f"scale={round(scale, 2)}, "
-            f"base={round(self.base_view_scale, 2)}, "
-            f"ratio={round(zoom_ratio, 2)}"
-        ) 
+        # logger.info(
+        #     f"scale={round(scale, 2)}, "
+        #     f"base={round(self.base_view_scale, 2)}, "
+        #     f"ratio={round(zoom_ratio, 2)}"
+        # ) 
         return canvas, zoom_ratio
     
     def render_geotiff(self, layer_id, init_view=False):
@@ -98,11 +98,11 @@ class Viewer(QWidget):
         from PyQt5 import sip
         ptr = sip.voidptr(img.ctypes.data)
         qimg = QImage(ptr, img.shape[1], img.shape[0], img.strides[0], QImage.Format_RGBA8888)
-        logger.info(f"Membuat QImage: w={qimg.width()}, h={qimg.height()}")
+        # logger.info(f"QImage generated: w={qimg.width()}, h={qimg.height()}")
         # logger.info(f"qimg.inbytes={qimg.sizeInBytes()/1024**2:.1f} MB")
         # logger.info(f"RAM: {process.memory_info().rss / 1024**2:.1f} MB")
         pixmap = QPixmap.fromImage(qimg)
-        logger.info(f"Membuat QPixmap: w={pixmap.width()}, h={pixmap.height()}")
+        # logger.info(f"QPixmap generated: w={pixmap.width()}, h={pixmap.height()}")
         # logger.info(f"RAM sebelum del: {process.memory_info().rss / 1024**2:.1f} MB")
         del img
         del qimg
@@ -110,16 +110,16 @@ class Viewer(QWidget):
         gc.collect()
         # logger.info(f"RAM setelah del: {process.memory_info().rss / 1024**2:.1f} MB")
         if layer_id in self.layer_items and self.layer_items[layer_id] != None:
-            logger.info(f"Layer {layer_id} sudah ada!")
+            # logger.info(f"Layer {layer_id} found!")
             item = self.layer_items[layer_id]
             item.setPixmap(pixmap)
-            logger.info(f"Memperbarui pixmap di scene...")
+            # logger.info(f"Update pixmap scene...")
         else:
-            logger.info(f"Layer {layer_id} belum ada!")
+            # logger.info(f"Layer {layer_id} not found!")
             self.base_raster_size[layer_id] = (w, h)
             # Set bounding scene
             if len(self.base_raster_size) == 1:
-                logger.info("Mengatur sceneRect")
+                # logger.info("Mengatur sceneRect")
                 self.scene.setSceneRect(
                     top_left.x(),
                     top_left.y(),
@@ -128,7 +128,7 @@ class Viewer(QWidget):
                 )
                 # logger.info(f"SceneRect sesuai origin: {self.scene.sceneRect()}")
             item = self.scene.addPixmap(pixmap)
-            logger.info(f"Menambah pixmap ke scene...")
+            # logger.info(f"Add pixmap to scene...")
             self.layer_items[layer_id] = item
 
         # logger.info(f"{self.layer_items}")
@@ -274,7 +274,7 @@ class Viewer(QWidget):
             self.viewer.scale(1, -1)
 
     def fit_to_view(self):
-        logger.info("Fit to view diklik.")
+        # logger.info("Fit to view clicked.")
         combined_rect = QRectF()
         has_visible_item = False
 
@@ -297,15 +297,15 @@ class Viewer(QWidget):
                 Qt.KeepAspectRatio
             )
         else:
-            logger.warning("Tidak ada item visible untuk fit to view.")
+            logger.warning("No visible item to fit to view.")
         self.apply_view_transform()
 
     def set_pan_mode(self, enabled: bool):
         if enabled:
-            logger.info("action_pan: ON")
+            # logger.info("action_pan: ON")
             self.viewer.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         else:
-            logger.info("action_pan: OFF")
+            # logger.info("action_pan: OFF")
             self.viewer.setDragMode(QGraphicsView.DragMode.NoDrag)
 
     def zoom_in(self):

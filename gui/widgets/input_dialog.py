@@ -21,17 +21,17 @@ class InputDialog(QDialog):
         self.shpcomboBox.currentIndexChanged.connect(self._handle_layer_comboBox)
 
     def _handle_browse_tif(self):
-        logger.info("btn_browse_tif ditekan")
+        # logger.info("btn_browse_tif pressed")
         path, _ = QFileDialog.getOpenFileName(self, "Open Supported Raster", "", "GeoTiff (*.tif *.tiff)")
         if path: self.lineEdit_tif.setText(path)
 
     def _handle_browse_shp(self):
-        logger.info("btn_browse_shp ditekan")
+        # logger.info("btn_browse_shp pressed")
         path, _ = QFileDialog.getOpenFileName(self, "Open Supported Vector", "", "ESRI Shapefile (*.shp)")
         if path: self.lineEdit_shp.setText(path)
 
     def _init_layer_comboBox(self):
-        logger.info("User menggunakan drop-down combo box")
+        # logger.info("User clicked drop-down combo box")
         if not self.temp_metadata:
             self.tifcomboBox.clear()
             self.shpcomboBox.clear()
@@ -58,7 +58,7 @@ class InputDialog(QDialog):
             self.lineEdit_shp.setText("")
 
     def _handle_browse_out(self):
-        logger.info("btn_browse_out ditekan")
+        # logger.info("btn_browse_out pressed")
         path = QFileDialog.getExistingDirectory(self, "Save In")
         if path: self.lineEdit_out.setText(path)   
 

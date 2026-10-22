@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
         self.secs = 0
         
     def update_scene_extent(self):
-        logger.info("Memperbarui extent...")
+        # logger.info("Update scene extent...")
         extents = []
         
         for layer_id in self.layer_manager.list_ids():
@@ -207,13 +207,13 @@ class MainWindow(QMainWindow):
         xmax = max(e[2] for e in extents)
         ymax = max(e[3] for e in extents)
         self.scene_extent = (xmin, ymin, xmax, ymax)
-        logger.info(f"Global extent, x={xmin}, y={ymax}")
+        # logger.info(f"Global extent, x={xmin}, y={ymax}")
         self.update_scene_origin(xmin, ymax)
 
     def update_scene_origin(self, xmin, ymax):
-        logger.info("Memperbarui origin...")
-        logger.info(f"scene origin x={xmin}")
-        logger.info(f"scene origin y={ymax}")
+        # logger.info("Update origin...")
+        # logger.info(f"scene origin x={xmin}")
+        # logger.info(f"scene origin y={ymax}")
         self.viewer.update_origin(xmin, ymax)
         self.raster_handler.update_origin(xmin, ymax)
         self.vector_handler.refresh_vector()
@@ -257,7 +257,7 @@ class MainWindow(QMainWindow):
             self.active_thread.remove(worker)
 
     def _connect_signals(self):
-        logger.info("Sinyal Action terhubung")
+        # logger.info("Action signal connected")
         self.raster_handler.crsDetected.connect(self.update_crs_label)
         self.raster_handler.rasterUpdated.connect(self.viewer.render_geotiff)
         self.vector_handler.crsDetected.connect(self.update_crs_label)
@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
     def process_next_queue(self):
         if not self.queue_files:
             self.timer.stop()
-            logger.info("Semua raster berhasil dimuat ke workspace!")
+            # logger.info("All raster loaded succesfully!")
             return
 
         file = self.queue_files.pop(0)
@@ -337,7 +337,7 @@ class MainWindow(QMainWindow):
             self.viewer._render_vector(layer.sid)
 
     def open_img_file(self):
-        logger.info("Action: open_img ditekan")
+        # logger.info("Action: open_img pressed")
         path, _ = QFileDialog.getOpenFileName(
             self, "Open Supported Raster", "", "GeoTIFF (*.tif *.tiff);;Images (*.jpg *.png)"
         )
@@ -348,7 +348,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Ready")
 
     def open_vector_file(self):
-        logger.info("Action: open_shp ditekan")
+        # logger.info("Action: open_shp pressed")
         path, _ = QFileDialog.getOpenFileName(self, "Open Supported Vector", "", "ESRI Shapefile (*.shp);;Geopackage (*.gpkg)")
         
         if path:
@@ -356,7 +356,7 @@ class MainWindow(QMainWindow):
     
     def on_img_loaded(self, result):
         if result is None:
-            logger.info("Gagal memuat raster: result None atau thread error")
+            logger.error("Raster load failed: result is None or thread error")
         else:
             self.layer_manager.add_layer(result)
             self.layer_panel.add_layer_item(result.sid, result.name)
@@ -398,19 +398,19 @@ class MainWindow(QMainWindow):
             if name:
                 from path_config import AppPaths
                 temp_dir = AppPaths.TEMP / name
-                logger.info(f"Menghapus folder temp: {name}")
+                # logger.info(f"Delete tempo folder: {name}")
                 if os.path.exists(temp_dir):
                     shutil.rmtree(str(temp_dir))
                     # logger.info(f"Folder temp dihapus: {temp_dir}")
         except Exception as e:
-            logger.error(f"Gagal menghapus: {e}")
+            logger.error(f"Failed to delete: {e}")
             
     def create_new_shapefile(self):
-        logger.info("Action: action_new_shp_layer ditekan")
+        # logger.info("Action: action_new_shp_layer pressed")
         dialog = CreateShapefileDialog(self, crs=self.current_crs)
         if dialog.exec_():
             path, dtype, crs = dialog.get_values()
-            logger.info(f"Tipe geometri: {dtype}, CRS: {crs}")
+            # logger.info(f"Geom type: {dtype}, CRS: {crs}")
             
             if path:
                 self.polygon_tool.start_drawing(path, dtype, crs)
@@ -422,7 +422,7 @@ class MainWindow(QMainWindow):
             self.load_vector_layer(path)
 
     def get_layers_list(self):
-        logger.info("Update list layer combo box")
+        # logger.info("Update list layer combo box")
         layer_dict = {}
         if self.layer_panel.layer_ids:
             for lid in self.layer_panel.layer_ids:
@@ -469,7 +469,7 @@ class MainWindow(QMainWindow):
         else:
             self.legend_panel.set_legend(legend)
             self.legend_panel.set_info(stats)
-            logger.info("Legenda diperbarui!")
+            # logger.info("Legend updated!")
             self.dockLegend.show()
 
     def update_progress_bar(self, value, msg):
@@ -552,7 +552,7 @@ class MainWindow(QMainWindow):
         self.reset_elapsed()
         
     def run_disease_prediction(self):
-        logger.info("action_disease_predict ditekan")
+        # logger.info("action_disease_predict pressed")
         metadata = self.get_layers_list()
         dialog = InputDialog(self, title="Disease Detection", icon=self.icon_disease, metadata=metadata)
         if dialog.exec_():
@@ -560,7 +560,7 @@ class MainWindow(QMainWindow):
             self.run_analysis(self.disease_ctrl, tif, shp, out)
 
     def run_water_prediction(self):
-        logger.info("action_water_predict ditekan")
+        # logger.info("action_water_predict pressed")
         metadata = self.get_layers_list()
         dialog = InputDialog(self, title="Water Availability", icon=self.icon_water, metadata=metadata)
         if dialog.exec_():
@@ -568,7 +568,7 @@ class MainWindow(QMainWindow):
             self.run_analysis(self.water_ctrl, tif, shp, out)
 
     def run_nutrient_prediction(self):
-        logger.info("action_disease_predict ditekan")
+        # logger.info("action_disease_predict pressed")
         metadata = self.get_layers_list()
         dialog = InputDialog(self, title="Nutrient Availability", icon=self.icon_mineral, metadata=metadata)
         if dialog.exec_():
@@ -578,7 +578,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         thread_running = False
         from path_config import AppPaths
-        logger.info("Mencoba menutup aplikasi...")
+        # logger.info("Attempting to close the app...")
         reply = QMessageBox.question(self, 'Exit', 'Are you sure?',
                                      QMessageBox.StandardButton.Yes |
                                      QMessageBox.StandardButton.No,
@@ -587,52 +587,23 @@ class MainWindow(QMainWindow):
             for worker in self.active_thread:
                 if worker.isRunning():
                     thread_running = True
-                    logger.info("Menghentikan worker thread sebelum keluar...")
+                    # logger.info("Stop worker thread before exit...")
                     worker.requestInterruption()
                     worker.quit()
                     worker.wait()
                     if hasattr(self, 'pd'):
                         self.pd.close()
             if thread_running:
-                logger.info("Menunggu seluruh background thread selesai...")
+                logger.info("Wait background thread...")
             if AppPaths.TEMP.exists():
-                logger.info("Menghapus cache di temporary folder...")
+                logger.info("Delete temporary folder...")
                 import shutil
                 shutil.rmtree(AppPaths.TEMP)
-            logger.info("Cleanup selesai. Aplikasi ditutup")
+            logger.info("Cleanup completed. App closed")
             event.accept()
         else:
-            logger.info("Batal menutup aplikasi.")
+            logger.info("Cancel exit.")
             event.ignore()
 
-    # DEBUGGING FINISH
-    def simulate_finished(self):
-        from app.result_model import AnalysisResult
-
-        fake = AnalysisResult()
-        fake.prediction_path = r"C:\Users\acer_\Documents\Orthomosaic\tes aplikasi\Lahan percobaan\Hasil_Prediksi\Sebaran_Petak\Hasil_Prediksi.gpkg"
-        # fake.prediction_path = [
-        #     "C:/Users/acer_/Documents/Orthomosaic/tes aplikasi/Lahan percobaan/Hasil_Prediksi/Sebaran_Rumpun/peta_sebaran_penyakit_bercak cokelat.tif",
-        #     "C:/Users/acer_/Documents/Orthomosaic/tes aplikasi/Lahan percobaan/Hasil_Prediksi/Sebaran_Rumpun/peta_sebaran_penyakit_bercak sempit.tif",
-        #     "C:/Users/acer_/Documents/Orthomosaic/tes aplikasi/Lahan percobaan/Hasil_Prediksi/Sebaran_Rumpun/peta_sebaran_penyakit_blas.tif",
-        #     "C:/Users/acer_/Documents/Orthomosaic/tes aplikasi/Lahan percobaan/Hasil_Prediksi/Sebaran_Rumpun/peta_sebaran_penyakit_hdb.tif"
-        # ]
-        fake.statistic = {
-            'Healthy': 5.29, 
-            'Low': 0.0, 
-            'Mild': 0.41, 
-            'Severe': 94.3, 
-            'rekomendasi': 'High severity level, immediate action required!'
-        }
-
-        fake.legend = {
-            1: {"label": "Healthy", "color": (0,128,0)},
-            2: {"label": "Low",     "color": (144,238,144)},
-            3: {"label": "Mild",    "color": (255,255,116)},
-            4: {"label": "Severe",  "color": (215,25,28)}
-        }
-
-        # Panggil handler yang sama persis seperti saat worker selesai
-        self.on_analysis_finished(fake)
 
     

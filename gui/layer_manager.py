@@ -23,20 +23,20 @@ class LayerManager(QObject):
 
     def add_layer(self, layer):
         self.layers[layer.sid] = layer
-        logger.info(
-            f"Berhasil menambah "
-            f"LAYER={layer.sid}, "
-            f"NAME={layer.name}"
-        )
+        # logger.info(
+        #     f"Berhasil menambah "
+        #     f"LAYER={layer.sid}, "
+        #     f"NAME={layer.name}"
+        # )
 
     def remove_layer(self, layer_id):
         layer = self.layers.pop(layer_id, None)
         if layer is not None:
-            logger.info(
-                f"Berhasil menghapus "
-                f"LAYER={layer.sid}, "
-                f"NAME={layer.name}"
-            )
+            # logger.info(
+            #     f"Berhasil menghapus "
+            #     f"LAYER={layer.sid}, "
+            #     f"NAME={layer.name}"
+            # )
             return layer
 
     def get_layer(self, layer_id):

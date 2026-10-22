@@ -81,14 +81,14 @@ class PolygonDrawingTool(QObject):
             self.active_poly_item = None
         self.temp_shp_points.clear()
         self.geo_coords.clear()
-        logger.info("Drawing cancelled")
+        # logger.info("Drawing cancelled")
         self.drawInfoMsg.emit("Drawing cancelled")
 
     def stop_drawing(self):
         self.renderer.viewer.setCursor(Qt.ArrowCursor)
         self.renderer.viewer.viewport().setCursor(Qt.ArrowCursor)
         self.renderer.viewer.setFocus(False)
-        logger.info("Drawing mode disabled")
+        # logger.info("Drawing mode disabled")
         self.drawInfoMsg.emit("Drawing mode disabled")
         self.is_drawing = False
         self.cancel_drawing()
@@ -139,7 +139,7 @@ class PolygonDrawingTool(QObject):
                 # logger.info(f"Polygon yang dibuat: {self.list_poly}")
             if not geom.is_valid:
                 self.drawInfoMsg.emit("Geometry is not valid")
-                logger.info("Geometri tidak valid")
+                # logger.info("Geometri is not valid")
                 return
             final_poly_item = QGraphicsPolygonItem(QPolygonF(self.temp_shp_points))
             pen = QPen(QColor(153, 245, 39, 150))

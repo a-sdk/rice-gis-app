@@ -19,17 +19,17 @@ class VectorHandler(QObject):
         self.vector_info = {}
 
     def refresh_vector(self):
-        logger.info("Memperbarui origin vector...")
+        # logger.info("Update vector origin...")
         for lid in self.vector_info:
             self.vectorUpdated.emit(lid)
 
     def add_shapefile(self, name, layer_id, path):
-        logger.info(f"==== TAMBAH VEKTOR {name} DI LAYER: {layer_id} ====")
-        logger.info("Membuka shapefile")
+        # logger.info(f"==== TAMBAH VEKTOR {name} DI LAYER: {layer_id} ====")
+        # logger.info("Load shapefile")
         gdf = gpd.read_file(path)
         bounds = gdf.total_bounds
         xmin, ymin, xmax, ymax = bounds
-        logger.info(f"Vector extent x={xmin}, y={ymax}")
+        # logger.info(f"Vector extent x={xmin}, y={ymax}")
         # logger.info(f"{self.layer_items}")
         info = {
             "Name": name,
@@ -56,8 +56,8 @@ class VectorHandler(QObject):
         return layer
 
     def add_gpkg_layer(self, name, layer_id, path, layer_name):
-        logger.info(F"==== TAMBAH VEKTOR {layer_name} DI LAYER: {layer_id} ====")
-        logger.info("Membuka GPKG...")
+        # logger.info(F"==== ADD VEKTOR {layer_name} TO LAYER: {layer_id} ====")
+        # logger.info("Load geopackage...")
         gdf = gpd.read_file(path, layer=layer_name)
         bounds = gdf.total_bounds
         xmin, ymin, xmax, ymax = bounds

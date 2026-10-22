@@ -36,11 +36,11 @@ class RasterHandler(QObject):
         ymax = transform.f
         xmax = xmin + width * transform.a
         ymin = ymax + height * transform.e
-        logger.info(f"Raster extent x={xmin}, y={ymax}")
+        # logger.info(f"Raster extent x={xmin}, y={ymax}")
         return xmin, ymin, xmax, ymax
     
     def update_origin(self, xmin, ymax):
-        logger.info("Memperbarui origin raster...")
+        # logger.info("Update origin raster...")
         self.scene_origin_x = xmin
         self.scene_origin_y = ymax
         
@@ -173,8 +173,8 @@ class RasterHandler(QObject):
         temp_dir = AppPaths.TEMP / filename
         temp_dir.mkdir(parents=True, exist_ok=True)
         # logger.info(f"RAM: {process.memory_info().rss / 1024**2:.1f} MB")
-        logger.info(F"==== TAMBAH RASTER {name} DI LAYER: {layer_id} ====")
-        logger.info("Membuka raster...")
+        # logger.info(F"==== ADD RASTER {name} TO LAYER: {layer_id} ====")
+        # logger.info("Load raster...")
         helper.progress(20, "Loading raster...")
         if helper.cancelled(): raise OperationCancelledError("User cancelled")
         if path.lower().endswith((".png", ".jpg", ".jpeg")):
@@ -183,7 +183,7 @@ class RasterHandler(QObject):
         
         else:  # GeoTIFF Logic
             isGeoTiff = True
-            logger.info("Membaca metadata raster...")
+            # logger.info("Fetching raster metadata...")
             helper.progress(45, "Fetching raster metadata...")
             if helper.cancelled(): raise OperationCancelledError("User cancelled")
             with rio.open(path) as src:
@@ -201,7 +201,7 @@ class RasterHandler(QObject):
                     self.scene_origin_x = xmin
                     self.scene_origin_y = ymax
                 display_factor = self.choose_display_factor(w)
-                logger.info(f"Display factor: {display_factor}")
+                # logger.info(f"Display factor: {display_factor}")
                 if dtype == 'uint8':
                     self.OVERVIEW_FACTORS.insert(0, 1)
                 helper.progress(55, "Generating overview...")
@@ -315,7 +315,7 @@ class RasterHandler(QObject):
             return [1, 2, 4, 8, 16][level]
 
     def update_viewport_raster(self, layer_id):
-        logger.info("Membaca ukuran viewport...")
+        # logger.info("Get viewport size...")
         layer = self.layer_manager.get_layer(layer_id)
         if not layer:
             return
@@ -331,16 +331,16 @@ class RasterHandler(QObject):
         world_right = canvas.right() + self.scene_origin_x
         world_bot   = canvas.bottom() + self.scene_origin_y
         # logger.info(f"Viewport rect={canvas}")
-        logger.info(f"Scene viewport:"
-                    f"x={round(canvas.x(),2)},"
-                    f"y={round(canvas.y(),2)},"
-                    f"w={round(canvas.width(),2)},"
-                    f"h={round(canvas.height(),2)}"
-                    )
-        logger.info(f"Raster size: w={info['width']}, h={info['height']}")
+        # logger.info(f"Scene viewport:"
+        #             f"x={round(canvas.x(),2)},"
+        #             f"y={round(canvas.y(),2)},"
+        #             f"w={round(canvas.width(),2)},"
+        #             f"h={round(canvas.height(),2)}"
+        #             )
+        # logger.info(f"Raster size: w={info['width']}, h={info['height']}")
         import rasterio as rio
         from rasterio.windows import Window
-        logger.info("Melakukan window_reading...")
+        # logger.info("Window_reading...")
         with rio.open(info.get("Source")) as src:
             row0, col0 = src.index(world_left, world_top)
             row1, col1 = src.index(world_right, world_bot)
@@ -360,13 +360,13 @@ class RasterHandler(QObject):
             info["display_width"] = w
             info["display_height"] = h
 
-            logger.info(f"Window x={x}, y={y}, w={w}, h={h}")
-            logger.info(f"Pixel size={round(window_transform.a,2)}")
+            # logger.info(f"Window x={x}, y={y}, w={w}, h={h}")
+            # logger.info(f"Pixel size={round(window_transform.a,2)}")
 
-        logger.info(f"Window read shape: {bands.shape}")
-        logger.info(f"Window mask shape: {mask.shape}")
+        # logger.info(f"Window read shape: {bands.shape}")
+        # logger.info(f"Window mask shape: {mask.shape}")
         elapsed = time.perf_counter() - start
-        logger.info(f"window reading time -> {elapsed:.3f}s")
+        # logger.info(f"window reading time -> {elapsed:.3f}s")
         img = self.prepare_raster(
             bands,
             mask,
@@ -383,10 +383,10 @@ class RasterHandler(QObject):
             self.scene_origin_x,
             self.scene_origin_y
         )
-        logger.info(f"img shape={img.shape if hasattr(img,'shape') else 'unknown'}")
+        # logger.info(f"img shape={img.shape if hasattr(img,'shape') else 'unknown'}")
         # logger.info(f"Window transform={window_transform}")
         # logger.info(f"Final window transform={final_transform}")
-        logger.info("Menampilkan hasil window_reading...")
+        # logger.info("Show window_reading result...")
         # Update layer img + transform
         layer.item = img
         layer.qtransform = final_transform
@@ -411,7 +411,7 @@ class RasterHandler(QObject):
         info["display_height"] = current_h
         if factor == 1 and dtype == 'uint16':
             self.update_viewport_raster(layer_id)
-            logger.info(f"Reload layer {layer_id} -> f{factor} -> window_reading")
+            # logger.info(f"Reload layer {layer_id} -> f{factor} -> window_reading")
         elif factor != info.get("current_factor"):
             cache_dir = Path(info.get("cache_dir"))
             arr = np.load(str(cache_dir/f"f{factor}.npz"))
@@ -443,17 +443,17 @@ class RasterHandler(QObject):
                 layer_id,
                 False
             )
-            logger.info(f"Reload layer {layer_id} -> f{factor} {bands.shape}")
+            # logger.info(f"Reload layer {layer_id} -> f{factor} {bands.shape}")
         info["current_factor"] = factor     
 
     def update_overview_level(self):
         zoom_ratio = self.viewport_zoom_ratio
-        logger.info("UPDATE OVERVIEW LEVEL!")  
+        # logger.info("UPDATE OVERVIEW LEVEL!")  
         for layer_id, info in self.raster_info.items():
-            logger.info(f"==== INFO LAYER {layer_id} ====")
+            # logger.info(f"==== INFO LAYER {layer_id} ====")
             base_factor = info.get("base_factor")
             current_factor = self.choose_factor(base_factor, zoom_ratio)
-            logger.info(f"layer={layer_id}, factor={current_factor}")
+            # logger.info(f"layer={layer_id}, factor={current_factor}")
             self.reload_overview(layer_id, current_factor)
 
     def trigger_update_overview_level(self):

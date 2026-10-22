@@ -49,7 +49,7 @@ class BaseController:
     def _get_cached_voronoi(cls, shp, out):
         logger.info("Accessing voronoi polygon...")
         cache_key = (shp, out)
-        logger.info(cache_key)
+        # logger.info(cache_key)
         if cache_key in cls._voronoi_cache:
             path = cls._voronoi_cache[cache_key]
             if os.path.exists(path):

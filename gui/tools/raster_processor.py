@@ -186,6 +186,7 @@ class RasterHandler(QObject):
         import json
         from rasterio.transform import Affine
         from app.worker import OperationCancelledError
+        from core.logic.utils import check_and_reproject_raster
         helper = WorkerHelper(hooks)
         filename = name.split(".")[0]
         isGeotiff = not path.lower().endswith((".png", ".jpg", ".jpeg")) # Geotiff flag
@@ -196,6 +197,11 @@ class RasterHandler(QObject):
         # logger.info("Load raster...")
         helper.progress(20, "Loading raster...")
         if helper.cancelled(): raise OperationCancelledError("User cancelled")
+        if isGeotiff:
+            helper.progress(30, "Checking raster CRS...")
+            # Reproject if geographic, returns new path. If already projected, returns original path.
+            path = check_and_reproject_raster(path, str(temp_dir), helper.cancelled, helper.progress)
+            if helper.cancelled(): raise OperationCancelledError("User cancelled")
         helper.progress(45, "Fetching raster metadata...")
         if helper.cancelled(): raise OperationCancelledError("User cancelled")
         with rio.open(path) as src:

@@ -49,6 +49,95 @@ def lonlat_to_utm_epsg(lon, lat):
     
     return int(utm_crs_list[0].code)
 
+def check_vector_crs(gdf):
+    """
+    Check vector CRS. If geographic, reprojects it to the local UTM zone.
+    Parameters:
+        gdf (GeoDataframe): Polygon or geometry.
+    Returns:
+        None.
+    """
+    crs_asal = gdf.crs.to_string()
+    if gdf.crs is None:
+        raise ValueError(f"No CRS found. Please check.")
+
+    if gdf.crs.is_geographic:
+        centroid = gdf.unary_union.centroid
+        epsg_code = lonlat_to_utm_epsg(centroid.x, centroid.y)
+        gdf = gdf.to_crs(epsg=epsg_code)
+        logger.info(f"CRS converted: {crs_asal} -> UTM (EPSG:{epsg_code})")
+    else:
+        logger.info(f"CRS already projected ({str(gdf.crs).upper()})")
+
+def check_and_reproject_raster(input_path, output_folder, check_cancel=None, on_progress=None):
+    """
+    Checks raster CRS. If geographic, reprojects it to the local UTM zone.
+    Parameters:
+        input_path (str): Path to a raster.
+        output_folder (str): Directory where the reprojected raster will be saved.
+        check_cancel (callable, optional): Optional callback function to check for cancellation requests.
+        on_progress (callable, optional): Optional callback function to track processing progress.
+    Returns:
+        str: Path to reprojected raster.
+    """
+    from rasterio.warp import calculate_default_transform, reproject, Resampling
+    os.makedirs(output_folder, exist_ok=True)
+    name = get_filename(input_path)
+    output_path = os.path.join(output_folder, f"{name}_projected.tif")
+    with rio.open(input_path) as src:
+        if not src.crs or not src.crs.is_geographic:
+            logger.info(f"CRS already projected or missing ({str(src.crs).upper()})")
+            return input_path
+        # Find the center point of the raster to determine UTM zone
+        bounds = src.bounds
+        center_lon = (bounds.left + bounds.right) / 2
+        center_lat = (bounds.bottom + bounds.top) / 2
+        
+        # Get target UTM EPSG using your existing function
+        epsg_code = lonlat_to_utm_epsg(center_lon, center_lat)
+        target_crs = f"EPSG:{epsg_code}"
+        
+        logger.info(f"CRS converting: {src.crs} -> UTM ({target_crs})")
+        
+        # Calculate the new dimensions and transformation matrix
+        transform, width, height = calculate_default_transform(
+            src.crs, target_crs, src.width, src.height, *bounds
+        )
+        
+        # Copy metadata and update it for the new projected raster
+        kwargs = src.meta.copy()
+        kwargs.update({
+            'crs': target_crs,
+            'transform': transform,
+            'width': width,
+            'height': height
+        })
+            
+        # Reproject and write pixel data to the output file
+        with rio.open(output_path, 'w', **kwargs) as dst:
+            for i in range(1, src.count + 1):
+
+                if check_cancel and check_cancel():
+                    from app.worker import OperationCancelledError
+                    logger.warning("Reprojection stopped")
+                    raise OperationCancelledError("User cancelled")
+
+                if on_progress:
+                    relative_prog = 30 + int((i/src.count) * 15)
+                    on_progress(relative_prog, f"Reprojecting raster ({i}/{src.count})")
+
+                reproject(
+                    source=rio.band(src, i),
+                    destination=rio.band(dst, i),
+                    src_transform=src.transform,
+                    src_crs=src.crs,
+                    dst_transform=transform,
+                    dst_crs=target_crs,
+                    resampling=Resampling.nearest # Use bilinear or cubic for continuous data
+                )
+
+    return output_path
+            
 def generate_grid_points(geom, target_count):
     """
     Generate points in a regular grid pattern within a given geometry.
@@ -80,7 +169,7 @@ def generate_voronoi_poly(shp_path, output_folder, on_progress=None, subpoly_are
     Subdivide polygons in a shapefile into smaller Voronoi polygons using K-Means clustering.
     Parameters:
         shp_path (str): Path to the input polygon shapefile (.shp).
-        output_folder (str): Directory where the output shapefile will be saved under a 'multipoligon' subfolder.
+        output_folder (str): Directory where the output shapefile will be saved.
         on_progress (callable, optional): Optional callback function to track processing progress.
         subpoly_area (float, optional): Approximate target area per subpolygon component in square meters.
             Defaults to 0.45.
@@ -102,18 +191,8 @@ def generate_voronoi_poly(shp_path, output_folder, on_progress=None, subpoly_are
     if on_progress:
         on_progress(11, f"Loading polygon CRS...")
     polygons = gpd.read_file(shp_path)
-    crs_asal = polygons.crs.to_string()
-    if polygons.crs is None:
-        raise ValueError(f"No CRS found in {filename}. Please check.")
-
-    if polygons.crs.is_geographic:
-        centroid = polygons.unary_union.centroid
-        epsg_code = lonlat_to_utm_epsg(centroid.x, centroid.y)
-        polygons = polygons.to_crs(epsg=epsg_code)
-        logger.info(f"CRS converted: {crs_asal} -> UTM (EPSG:{epsg_code})")
-    else:
-        logger.info(f"CRS already projected ({str(polygons.crs).upper()})")
-
+    
+    check_vector_crs(polygons)
     # Menentukan jumlah komponen poligon berdasarkan luas 
     with fiona.open(shp_path) as shp:
         jml_poligon = len(shp)

@@ -1,4 +1,7 @@
 from PyQt5.QtCore import QThread, pyqtSignal
+import logging
+
+logger = logging.getLogger(__name__)
 
 class OperationCancelledError(Exception):
     """Thrown when user press cancel."""
@@ -33,6 +36,7 @@ class Worker(QThread):
 
         except  Exception as e:
             self.error_signal.emit(str(e))
+            logger.error(f"An error occured: {str(e)}")
 
         else:
             self.finished_signal.emit(result)

@@ -46,7 +46,6 @@ def extract_zonal_mean_pixels(shp_path, input_path, output_folder):
                 "RED_EDGE", "NIR", "NDREI"
             ]
         else:
-            logger.info("Raster biasa")
             nama_bands = [
                 "RED", "GREEN", "BLUE", "M_GREEN", "M_RED", 
                 "RED_EDGE", "NIR"

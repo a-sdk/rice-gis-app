@@ -24,9 +24,11 @@ class VectorHandler(QObject):
             self.vectorUpdated.emit(lid)
 
     def add_shapefile(self, name, layer_id, path):
+        from core.logic.utils import check_vector_crs
         logger.info(f"==== ADD VECTOR {name} TO LAYER: {layer_id} ====")
         logger.info("Load shapefile")
         gdf = gpd.read_file(path)
+        check_vector_crs(gdf)
         bounds = gdf.total_bounds
         xmin, ymin, xmax, ymax = bounds
         # logger.info(f"Vector extent x={xmin}, y={ymax}")
@@ -56,9 +58,11 @@ class VectorHandler(QObject):
         return layer
 
     def add_gpkg_layer(self, name, layer_id, path, layer_name):
+        from core.logic.utils import check_vector_crs
         logger.info(F"==== ADD VEKTOR {layer_name} TO LAYER: {layer_id} ====")
         logger.info("Load geopackage...")
         gdf = gpd.read_file(path, layer=layer_name)
+        check_vector_crs(gdf)
         bounds = gdf.total_bounds
         xmin, ymin, xmax, ymax = bounds
         legend, stats = self.read_gpkg_metadata(path, layer_name)

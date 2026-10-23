@@ -50,7 +50,7 @@ class InputDialog(QDialog):
         id_tif = self.tifcomboBox.currentData()
         id_shp = self.shpcomboBox.currentData()
         if id_tif != None and id_shp != None:
-            logger.info(f"User memilih tif:{id_tif}, shp: {id_shp}")
+            # logger.info(f"User memilih tif:{id_tif}, shp: {id_shp}")
             self.lineEdit_tif.setText(self.temp_metadata[id_tif]["Source"])
             self.lineEdit_shp.setText(self.temp_metadata[id_shp]["Source"])
         else:

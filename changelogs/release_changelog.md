@@ -1,6 +1,16 @@
 # Changelogs
 
 ## Release version changelogs
+### Version 1.0.1 - October 24, 2026
+- **Feature Updates**:
+    * Added reprojection function.
+    * Voronoi polygon reusability.
+    * Regular image handler.
+- **Bug Fixes and Enhancements**:
+    * Optimized memory usage.
+    * Resolved reference error.
+    * Fixed inaccurate timer bug.
+
 ### Version 1.0.0 - October 02, 2026
 - **Feature Updates**:
     * Added Linux distribution support.

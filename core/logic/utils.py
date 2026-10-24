@@ -80,7 +80,10 @@ def check_and_reproject_raster(input_path, output_folder, check_cancel=None, on_
     Returns:
         str: Path to reprojected raster.
     """
+    import gc
     from rasterio.warp import calculate_default_transform, reproject, Resampling
+    from rasterio.windows import Window, transform as win_transform
+
     os.makedirs(output_folder, exist_ok=True)
     name = get_filename(input_path)
     output_path = os.path.join(output_folder, f"{name}_projected.tif")
@@ -113,28 +116,59 @@ def check_and_reproject_raster(input_path, output_folder, check_cancel=None, on_
             'height': height
         })
             
-        # Reproject and write pixel data to the output file
-        with rio.open(output_path, 'w', **kwargs) as dst:
-            for i in range(1, src.count + 1):
+        # Calculate chunk height to limit memory consumption per window (~16 MB target)
+        bytes_per_pixel = np.dtype(src.dtypes[0]).itemsize if src.dtypes else 4
+        target_chunk_bytes = 16 * 1024 * 1024
+        max_pixels = max(1, target_chunk_bytes // bytes_per_pixel)
+        chunk_height = max(1, min(height, 1024, max_pixels // width))
 
-                if check_cancel and check_cancel():
-                    from app.worker import OperationCancelledError
-                    logger.warning("Reprojection stopped")
-                    raise OperationCancelledError("User cancelled")
+        windows = [
+            Window(col_off=0, row_off=r, width=width, height=min(chunk_height, height - r))
+            for r in range(0, height, chunk_height)
+        ]
 
-                if on_progress:
-                    relative_prog = 30 + int((i/src.count) * 15)
-                    on_progress(relative_prog, f"Reprojecting raster ({i}/{src.count})")
+        total_steps = src.count * len(windows)
+        last_prog = None
 
-                reproject(
-                    source=rio.band(src, i),
-                    destination=rio.band(dst, i),
-                    src_transform=src.transform,
-                    src_crs=src.crs,
-                    dst_transform=transform,
-                    dst_crs=target_crs,
-                    resampling=Resampling.nearest # Use bilinear or cubic for continuous data
-                )
+        # Restrict GDAL internal cache to prevent memory accumulation
+        with rio.Env(GDAL_CACHEMAX=64):
+            with rio.open(output_path, 'w', **kwargs) as dst:
+                for i in range(1, src.count + 1):
+                    band_dtype = src.dtypes[i - 1]
+                    fill_val = src.nodata if src.nodata is not None else 0
+
+                    for chunk_idx, window in enumerate(windows):
+                        if check_cancel and check_cancel():
+                            from app.worker import OperationCancelledError
+                            logger.warning("Reprojection stopped")
+                            raise OperationCancelledError("User cancelled")
+
+                        if on_progress:
+                            current_step = (i - 1) * len(windows) + chunk_idx + 1
+                            relative_prog = 30 + int((current_step / total_steps) * 15)
+                            if relative_prog != last_prog:
+                                last_prog = relative_prog
+                            on_progress(relative_prog, f"Reprojecting raster ({i}/{src.count})")
+
+                        dst_array = np.full((window.height, window.width), fill_val, dtype=band_dtype)
+
+                        reproject(
+                            source=rio.band(src, i),
+                            destination=dst_array,
+                            src_transform=src.transform,
+                            src_crs=src.crs,
+                            src_nodata=src.nodata,
+                            dst_transform=win_transform(window, transform),
+                            dst_crs=target_crs,
+                            dst_nodata=src.nodata,
+                            resampling=Resampling.nearest,
+                            warp_mem_limit=64
+                        )
+
+                        dst.write(dst_array, i, window=window)
+                        del dst_array
+
+                        gc.collect()
 
     return output_path
             
